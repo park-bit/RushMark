@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rushmark: AI Clip Maker for Twitch, Kick &amp; YouTube Live Streams</title>
+<meta name="description" content="Rushmark clips Twitch, Kick and YouTube live streams while they're still live. AI finds the best moments and turns them into captioned vertical Shorts, Reels and TikToks. Free and open source.">
+<link rel="canonical" href="{{SITE}}/">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta name="theme-color" content="#1c211f">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rushmark">
+<meta property="og:url" content="{{SITE}}/">
+<meta property="og:title" content="Rushmark: clip live streams while they're still live">
+<meta property="og:description" content="AI stream clipper for Twitch, Kick and YouTube. Captioned vertical clips for Shorts, Reels and TikTok. Free and open source, on your own AI key.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Rushmark: clip live streams while they're still live">
+<meta name="twitter:description" content="AI stream clipper for Twitch, Kick and YouTube. Captioned vertical clips. Free and open source.">
+<link rel="icon" type="image/svg+xml" href="/brand/favicon.svg?v=rushmark">
+<link rel="preload" as="image" href="/brand/reel-hundred-hours.jpg" fetchpriority="high">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Rushmark", "applicationCategory": "MultimediaApplication", "operatingSystem": "Web browser", "url": "{{SITE}}/", "image": "{{SITE}}/brand/logo.svg?v=rushmark", "description": "Free, open source AI clip maker that turns Twitch, Kick and YouTube live streams and videos into captioned vertical clips for YouTube Shorts, Instagram Reels and TikTok.", "isAccessibleForFree": true, "featureList": ["Clips live streams while they are live", "AI picks the best moments", "Word-by-word captions", "Vertical 9:16 clips", "Twitch, Kick and YouTube", "Posts to YouTube Shorts and Instagram Reels", "Works with your own AI key"]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "Rushmark", "url": "{{SITE}}/", "logo": "{{SITE}}/brand/logo.svg?v=rushmark"}</script>
+<style>
+:root{--stage:#1c211f;--panel:#262c29;--paper:#f5f4ed;--ink:#202622;--muted:#53605a;--orange:#ff984e;--dim:#bbcabf;--rule:#404944}
+*{box-sizing:border-box}html{scroll-padding-top:20px}body{margin:0;font:16px/1.55 "Segoe UI",Arial,sans-serif;color:var(--ink);background:var(--paper)}
+h1,h2,h3,p,figure{margin:0}a{color:inherit;text-underline-offset:4px}button,input{font:inherit}button,a{touch-action:manipulation}:focus-visible{outline:3px solid #ec8338;outline-offset:4px}
+.skip{position:absolute;top:-80px;left:15px;background:white;color:var(--ink);padding:10px;z-index:3}.skip:focus{top:10px}
+.wrap{width:min(calc(100% - 96px),1392px);margin-inline:auto}.word{width:146px;display:block}
+header,footer,.cover{background:var(--stage);color:var(--paper)}header .wrap,footer .wrap,nav,.actions{display:flex;align-items:center;gap:26px}header .wrap,footer .wrap{justify-content:space-between}header .wrap{height:78px;border-bottom:1px solid var(--rule)}
+nav a{font-size:14px;font-weight:600;text-decoration:none}nav a:hover,.reel a:hover{color:var(--orange)}
+.btn{cursor:pointer;border:0;border-radius:6px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:12px;padding:10px 17px;background:var(--orange);color:#281c11;font-weight:700;text-decoration:none}.btn:hover{background:#ffb077;color:#281c11}
+.hero{display:grid;grid-template-columns:minmax(350px,.92fr) minmax(0,1.42fr);align-items:center;gap:clamp(32px,4vw,70px);padding-block:clamp(46px,5vw,82px)}
+h1{font-size:clamp(56px,6.7vw,100px);line-height:.96;letter-spacing:-.056em;font-weight:740}h1 em{display:block;color:var(--orange);font-family:Georgia,serif;font-weight:400;letter-spacing:-.065em}
+.lede{margin:24px 0;color:#d5ddd6;font-size:clamp(17px,1.42vw,21px);max-width:41ch}
+.linkbox{display:flex;max-width:465px;gap:4px;padding:5px;background:var(--paper);border-radius:8px}.linkbox input{width:0;flex:1;min-width:0;border:0;padding:9px;background:transparent;color:var(--ink)}.linkbox input::placeholder{color:#58635c}
+.actions{margin-top:14px;font-size:14px;color:#d4ddd3}
+.reels{display:grid;grid-template-columns:1fr 1.18fr 1fr;gap:clamp(8px,1vw,17px);align-items:center;min-width:0}
+.reel{min-width:0}.reel:first-child{margin-top:42px}.reel:last-child{margin-bottom:30px}
+.screen{position:relative;display:block;width:100%;padding:0;overflow:hidden;aspect-ratio:9/16;border:1px solid #687066;border-radius:8px;background:#141815;cursor:pointer}.screen:hover,.screen:focus-visible{border-color:var(--orange)}
+.screen video{display:block;width:100%;height:100%;object-fit:cover}
+.play{position:absolute;bottom:10px;left:10px;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;color:white;background:#202521eb;border:1px solid #adbaad}.play::before{content:"";border-style:solid;border-width:5px 0 5px 8px;border-color:transparent transparent transparent currentColor;margin-left:2px}
+.screen[aria-pressed=true] .play::before{border:0;width:8px;height:10px;border-inline:3px solid currentColor;margin:0}
+.reel figcaption{padding-top:10px}.reel figcaption>span{display:block;font:12px/1.5 Consolas,monospace;color:var(--dim)}.reel figcaption a{display:block;font-size:15px;font-weight:600;text-decoration:none}.reel figcaption a span{color:var(--orange)}
+.filmline{background:#f5a260;color:#2c251d}.filmline .wrap{display:flex;justify-content:space-between;align-items:center;gap:20px;padding-block:13px;font:600 13px/1.5 Consolas,monospace}.ticks{height:8px;flex:1;opacity:.55;background:repeating-linear-gradient(90deg,#6f451e 0 1px,transparent 1px 12px)}
+.process,.faq{display:grid;grid-template-columns:1fr 1.35fr;gap:clamp(35px,8vw,140px);padding-block:clamp(44px,6vw,92px)}
+h2{font-size:clamp(36px,4.3vw,66px);letter-spacing:-.045em;line-height:1.05;font-weight:680}.section-intro p{margin-top:19px;max-width:33ch;color:var(--muted)}
+.steps{list-style:none;counter-reset:workflow;margin:0;padding:0}.steps li{counter-increment:workflow;display:grid;grid-template-columns:37px 1fr;column-gap:17px;padding:17px 0;border-top:1px solid #bdc7bb}.steps li::before{content:"0" counter(workflow);grid-row:span 2;font:14px/1.7 Consolas,monospace;color:#89502e}.steps h3{line-height:1.3;font-size:21px}.steps p,details p{color:var(--muted);margin-top:5px}.faq{border-top:1px solid #bdc7bb}.faq h2{font-size:clamp(30px,3vw,46px)}details{border-bottom:1px solid #bdc7bb;padding:13px 0}details:first-child{padding-top:0}summary{cursor:pointer;font-weight:600}footer .wrap{min-height:90px}
+@media(max-width:960px){.wrap{width:calc(100% - 48px)}.hero{grid-template-columns:1fr 1.25fr;gap:24px}h1{font-size:clamp(49px,6vw,72px)}.reel figcaption a{font-size:13px}.reel figcaption>span{font-size:11px}}
+@media(max-width:740px){.wrap{width:calc(100% - 36px)}header .wrap{height:64px}.word{width:125px}nav{gap:14px}header nav a[href^="#"]{display:none}.hero{grid-template-columns:1fr;gap:30px;padding-block:34px}.hero h1{font-size:clamp(52px,10vw,70px)}.lede{margin:17px 0;max-width:48ch}.reels{max-width:560px;width:100%;justify-self:center}.reel:first-child{margin-top:16px}.reel:last-child{margin-bottom:16px}.reel figcaption>span{display:none}.play{width:27px;height:27px;bottom:6px;left:6px}.process,.faq{grid-template-columns:1fr;gap:25px}.filmline .wrap{font-size:11px;gap:10px}footer .wrap{padding-block:18px;flex-wrap:wrap;gap:15px}}
+@media(max-width:390px){header .btn{padding-inline:11px}.linkbox input{font-size:14px}.word{width:108px}.filmline .ticks{display:none}}
+@media(min-width:961px){h1 em{font-size:.84em;line-height:1.08}}
+@media(max-width:600px){
+  .reels{display:flex;gap:12px;align-items:flex-start;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:thin;scrollbar-color:#717b71 var(--stage);padding:3px 3px 13px}
+  .reel{flex:0 0 clamp(165px,51vw,225px);scroll-snap-align:start}
+  .reel:first-child,.reel:last-child{margin:0}
+  .reel figcaption>span{display:block}.reel figcaption a{font-size:14px}
+  .screen{border-radius:6px}
+}
+.cover{position:relative;isolation:isolate;overflow:hidden}
+.cover-strip{position:absolute;z-index:-1;inset:auto 0 0;height:44%;pointer-events:none;opacity:.35;mask-image:linear-gradient(0deg,black 10%,transparent 100%);background:linear-gradient(110deg,#25302b,#9b502d,#30251b)}
+.cover-strip .gradient-ascii-container,.cover-strip canvas{width:100%;height:100%;display:block}
+.dashboard-preview{padding-bottom:clamp(40px,6vw,84px)}
+.dashboard-preview h2{font-size:clamp(28px,3vw,44px);margin-bottom:18px}
+.dashboard-preview a{display:block;border-radius:8px;cursor:zoom-in}
+.dashboard-preview img{display:block;width:100%;height:auto;border-radius:inherit}
+</style></head>
+<body><a class="skip" href="#main">Skip to content</a>
+<header><div class="wrap"><a href="/welcome" aria-label="Rushmark home"><img class="word" src="/brand/logo-light.svg?v=rushmark" alt="Rushmark"></a><nav aria-label="Main navigation"><a href="#highlights">Highlights</a><a href="#how">How it works</a><a href="/login" id="signin">Sign in</a><a class="entry btn" href="/signup">Open studio</a></nav></div></header>
+<main id="main"><section class="cover"><div class="cover-strip" aria-hidden="true"></div><div class="hero wrap"><div><h1>Find the cut. <em>Keep the rush.</em></h1>
+<p class="lede">Turn streams and long videos into captioned shorts. Catch the reaction, trim the setup, and share the part worth replaying.</p>
+<form class="linkbox" action="/signup"><input type="url" required aria-label="YouTube, Twitch or Kick video link" placeholder="Paste a video or stream link"><button class="btn">Make clips <span aria-hidden="true">→</span></button></form>
+<p class="actions"><a class="entry" href="/signup">Start with a video file</a></p></div>
+<div class="reels" id="highlights" role="region" aria-label="Published highlights. Hover or press play to preview."><figure class="reel">
+<button class="screen" type="button" aria-label="Preview: Raul’s final scene" aria-pressed="false">
+<video tabindex="-1" aria-hidden="true" muted playsinline loop preload="none" poster="/brand/reel-speed.jpg" data-src="/brand/reel-speed.mp4"></video><span aria-hidden="true" class="play"></span></button>
+<figcaption><span>Speed reacts</span><a href="https://www.youtube.com/shorts/3sxpI0JNWYY" target="_blank" rel="noopener">Raul’s final scene <span aria-hidden="true">↗</span></a></figcaption></figure>
+<figure class="reel">
+<button class="screen" type="button" aria-label="Preview: Hour 95 in GTA" aria-pressed="false">
+<video tabindex="-1" aria-hidden="true" muted playsinline loop preload="none" poster="/brand/reel-hundred-hours.jpg" data-src="/brand/reel-hundred-hours.mp4"></video><span aria-hidden="true" class="play"></span></button>
+<figcaption><span>The 100-hour challenge</span><a href="https://www.youtube.com/shorts/7PV-6j0sYPU" target="_blank" rel="noopener">Hour 95 in GTA <span aria-hidden="true">↗</span></a></figcaption></figure>
+<figure class="reel">
+<button class="screen" type="button" aria-label="Preview: Carry spots the cat" aria-pressed="false">
+<video tabindex="-1" aria-hidden="true" muted playsinline loop preload="none" poster="/brand/reel-cat.jpg" data-src="/brand/reel-cat.mp4"></video><span aria-hidden="true" class="play"></span></button>
+<figcaption><span>CarryIsLive</span><a href="https://www.youtube.com/shorts/yxIVM8cOr_s" target="_blank" rel="noopener">Carry spots the cat <span aria-hidden="true">↗</span></a></figcaption></figure></div></div></section>
+<div class="filmline"><div class="wrap"><span>YouTube / Twitch / Kick</span><span class="ticks" aria-hidden="true"></span><span>9:16 captioned shorts</span></div></div>
+<section class="process wrap" id="how"><div class="section-intro"><h2>From a full stream<br>to the good part.</h2><p>Run Rushmark on your own machine. Bring a recording or catch the next stream live.</p></div>
+<ol class="steps"><li><h3>Bring the source</h3><p>Paste a replay link, upload a file, or follow a creator to record their next stream.</p></li><li><h3>Pick your moments</h3><p>Find highlights using the transcript and your AI model. Without a model, Rushmark looks for loud moments with speech.</p></li><li><h3>Finish the cut</h3><p>Adjust the trim, hook and captions. Download a vertical clip or send it to a connected account.</p></li></ol></section>
+<section class="dashboard-preview wrap" id="dashboard" aria-labelledby="dashboard-title">
+<h2 id="dashboard-title">Inside the studio</h2>
+<a href="/brand/dashboard.png" aria-label="View the Rushmark dashboard preview at full size">
+<img src="/brand/dashboard.png" alt="Rushmark Overview with the video upload form, creator sidebar, and daily clipping and posting activity." width="2076" height="1166" loading="lazy" decoding="async">
+</a>
+</section>
+<section class="faq wrap" id="faq"><h2>Before you start</h2><div><details><summary>What does Rushmark cost?</summary><p>Rushmark is free and open source. Run it on your computer or server. If you connect a paid AI provider, that provider bills you directly.</p></details><details><summary>Which sources can I clip?</summary><p>Use YouTube, Twitch, Kick, or a video file you have permission to edit. Streams, interviews, and podcasts with clear speech work well.</p></details><details><summary>Can I edit clips before posting?</summary><p>Yes. Review the preview, trim the start and end, change the captions or layout, and render the clip again before sharing it.</p></details></div></section></main>
+<footer><div class="wrap"><img class="word" src="/brand/logo-light.svg?v=rushmark" alt="Rushmark"><nav aria-label="Footer"><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/acceptable-use">Acceptable use</a></nav></div></footer>
+<script src="/assets/gradient-ascii.js"></script>
+<script>
+if (window.GradientASCII && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  try {
+    GradientASCII(document.querySelector(".cover-strip"), {colors:["#402d20","#ef8749","#ffb76f"], shape:"horizon", cellSize:14, glyphOpacity:.45, speed:.55, mouseInteraction:false, clickEffect:"none"});
+  } catch { /* The background colour also works without WebGL. */ }
+}
+const previews = [...document.querySelectorAll(".screen")];
+const hover = matchMedia("(hover:hover) and (prefers-reduced-motion:no-preference)");
+function pausePreview(button) {
+  button.querySelector("video").pause();
+  button.setAttribute("aria-pressed", "false");
+}
+function playPreview(button) {
+  previews.filter(other => other !== button).forEach(pausePreview);
+  const video = button.querySelector("video");
+  if (!video.hasAttribute("src")) video.src = video.dataset.src;
+  button.setAttribute("aria-pressed", "true");
+
+  video.play().catch(() => { if (video.paused) pausePreview(button); });
+}
+for (const button of previews) {
+  button.addEventListener("pointerenter", event => { if (hover.matches && event.pointerType === "mouse") playPreview(button); });
+  button.addEventListener("pointerleave", event => { if (event.pointerType === "mouse") pausePreview(button); });
+  button.addEventListener("click", () => button.getAttribute("aria-pressed") === "true" ? pausePreview(button) : playPreview(button));
+  button.addEventListener("blur", () => pausePreview(button));
+}
+const visible = new IntersectionObserver(entries => entries.forEach(entry => {
+  if (!entry.isIntersecting) pausePreview(entry.target);
+}));
+previews.forEach(button => visible.observe(button));
+document.addEventListener("visibilitychange", () => { if (document.hidden) previews.forEach(pausePreview); });
+const form = document.querySelector(".linkbox");
+form.addEventListener("submit", event => {
+  event.preventDefault();
+  try { sessionStorage.setItem("peakcut_link", form.querySelector("input").value.trim()); } catch {}
+  location.assign(form.action);
+});
+fetch("/api/auth/me").then(response => response.json()).then(data => {
+  if (!data.user) return;
+  form.action = "/app";
+  document.querySelector("#signin").remove();
+  for (const link of document.querySelectorAll(".entry")) link.href = "/app";
+  document.querySelector("header .entry").textContent = "Open studio";
+}).catch(() => {});
+</script></body></html>
