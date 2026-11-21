@@ -16,9 +16,9 @@ Use the Rushmark wordmark on light backgrounds and its white version on the dark
 
 ## Public page
 
-Pair the source-link field with a playable vertical sample in the first section. Keep playback under the visitor’s control. Label each caption style and expose its selection to assistive technology. On narrow screens, place the form before the preview and allow the submit button its own row.
+Use the MIT-licensed PeakCut landing layout. Center the headline and set its second line on a solid orange highlight. Put the source-link form and upload action directly beneath it. Place three published vertical clips below the form, with the middle clip larger and a swipeable reel on phones.
 
-Use a large sans-serif headline with Georgia italic for the second line. Reserve that type pairing for the public page. Use thin borders and colour changes for separation and interaction.
+Use the orange animated field behind the hero. Link the clip titles to their full posts, show the supported platform marks below the reel, and keep the self-hosting details and studio screenshot within the page.
 
 ## Studio
 
