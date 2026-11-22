@@ -640,6 +640,399 @@ dialog::backdrop{background:rgba(14,12,11,.42);animation:fadein .16s ease}
 @keyframes ntout{to{opacity:0;transform:translateX(24px)}}
 @keyframes rise{from{transform:translateY(8px);opacity:0}}
 
+/* ---------- Visual Layout Studio */
+#layoutdlg {
+  width: 96vw;
+  max-width: 1440px;
+  height: 92vh;
+  max-height: 920px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  color: var(--text);
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.55);
+  padding: 0;
+}
+#layoutdlg::backdrop {
+  background: rgba(14, 12, 11, 0.78);
+  backdrop-filter: blur(5px);
+}
+.ls-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+.ls-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+  flex-shrink: 0;
+}
+.ls-title-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ls-title-area h2 {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--brand-ink);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ls-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.ls-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.ls-stage-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #0d0f12;
+  padding: 14px 18px 12px;
+  gap: 10px;
+}
+.ls-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: rgba(255,255,255,0.05);
+  padding: 8px 14px;
+  border-radius: var(--r);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.ls-toolgroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ls-toolgroup .ls-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #aaa;
+  margin-right: 4px;
+}
+.ls-btn-layer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.18);
+  transition: all 0.15s ease;
+}
+.ls-btn-layer.active {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+.ls-btn-layer .color-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.ls-viewport-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 0;
+  user-select: none;
+}
+.ls-viewport {
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  border-radius: 6px;
+  overflow: hidden;
+  max-width: 100%;
+  max-height: 100%;
+  display: inline-block;
+  line-height: 0;
+  background: #000;
+}
+#ls_source_img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(90vh - 170px);
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+.ls-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.ls-box {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: auto;
+  cursor: move;
+  touch-action: none;
+  z-index: 10;
+  transition: box-shadow 0.15s;
+}
+.ls-box.selected {
+  z-index: 20;
+}
+.ls-box-facecam {
+  border: 2px solid #FF8B33;
+  background: rgba(255, 139, 51, 0.22);
+}
+.ls-box-facecam.selected {
+  border-width: 2.5px;
+  box-shadow: 0 0 0 2px rgba(255, 139, 51, 0.45), 0 0 20px rgba(255, 139, 51, 0.4);
+}
+.ls-box-gameplay {
+  border: 2px dashed #00F0FF;
+  background: rgba(0, 240, 255, 0.14);
+}
+.ls-box-gameplay.selected {
+  border-style: solid;
+  border-width: 2.5px;
+  box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.45), 0 0 20px rgba(0, 240, 255, 0.4);
+}
+.ls-box-header {
+  position: absolute;
+  top: -24px;
+  left: -2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 4px 4px 0 0;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.ls-box-facecam .ls-box-header {
+  background: #FF8B33;
+  color: #fff;
+}
+.ls-box-gameplay .ls-box-header {
+  background: #00F0FF;
+  color: #000;
+}
+.ls-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-radius: 2px;
+  pointer-events: auto;
+  z-index: 30;
+}
+.ls-box-facecam .ls-handle { border: 2px solid #FF8B33; }
+.ls-box-gameplay .ls-handle { border: 2px solid #00B4C8; }
+.handle-nw { top: -6px; left: -6px; cursor: nwse-resize; }
+.handle-n { top: -6px; left: calc(50% - 5px); cursor: ns-resize; }
+.handle-ne { top: -6px; right: -6px; cursor: nesw-resize; }
+.handle-e { top: calc(50% - 5px); right: -6px; cursor: ew-resize; }
+.handle-se { bottom: -6px; right: -6px; cursor: nwse-resize; }
+.handle-s { bottom: -6px; left: calc(50% - 5px); cursor: ns-resize; }
+.handle-sw { bottom: -6px; left: -6px; cursor: nesw-resize; }
+.handle-w { top: calc(50% - 5px); left: -6px; cursor: ew-resize; }
+
+.ls-stage-hint {
+  font-size: 12px;
+  color: #bbb;
+  background: rgba(255,255,255,0.05);
+  padding: 6px 12px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ls-stage-hint b { color: #fff; }
+
+.ls-sidebar {
+  width: 380px;
+  max-width: 380px;
+  background: var(--card);
+  border-left: 1px solid var(--line);
+  overflow-y: auto;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ls-preview-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg);
+  padding: 14px 10px;
+  border-radius: var(--r);
+  border: 1px solid var(--line);
+}
+.ls-preview-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--dim);
+  margin-bottom: 10px;
+}
+.ls-phone-mockup {
+  width: 190px;
+  height: 338px;
+  border-radius: 26px;
+  border: 5px solid #23252b;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.45);
+  background: #000;
+  position: relative;
+  overflow: hidden;
+}
+#ls_preview_canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.ls-phone-notch {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 7px;
+  background: #23252b;
+  border-radius: 5px;
+  pointer-events: none;
+}
+.ls-preset-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.ls-preset-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ddd;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.ls-preset-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.ls-aspect-bar {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  gap: 2px;
+}
+.ls-aspect-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #aaa;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.ls-aspect-btn:hover {
+  color: #fff;
+}
+.ls-aspect-btn.active {
+  background: var(--brand);
+  color: #fff;
+}
+.ls-safezone-bar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--card);
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  margin-top: 6px;
+}
+.ls-safezone-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.ls-safezone-btn:hover {
+  color: var(--text);
+}
+.ls-safezone-btn.active {
+  background: var(--brand);
+  color: #fff;
+}
+.ls-frame-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.ls-frame-time {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.ls-controls-card h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-ink);
+  margin: 0 0 12px;
+}
+
 .me{display:flex;align-items:center;gap:8px;padding:10px 2px 0 6px;margin-top:8px;border-top:1px solid var(--frame-line)}
 .me .me-pic{width:30px;height:30px;font-size:14px;object-fit:cover;text-shadow:0 1px 1px rgba(0,0,0,.15)}
 .me-btn{flex:1;min-width:0;display:flex;align-items:center;gap:9px;padding:4px;margin:-4px;border:0;border-radius:7px;background:transparent;color:inherit;text-align:left;cursor:pointer;transition:background-color .15s ease}
@@ -870,6 +1263,7 @@ dialog[open]{animation:fadein .16s ease}
   </main>
 </div>
 <dialog id="clipdlg"></dialog>
+<dialog id="layoutdlg"></dialog>
 <dialog id="formdlg"></dialog>
 <input type="file" id="file" accept="video/*" multiple hidden>
 <div id="toasts" role="status" aria-live="polite"></div>
@@ -1436,7 +1830,7 @@ function drawAdd(variant) {
     </div></div></form>`;
   drawAtt();
 }
-const LAYOUT_SHORT = {blur:"Blurred fill", zoom:"Zoomed in", crop:"Fill screen", left:"Keep left", right:"Keep right", fit:"Black bars", split:"Split screen", gameplay:"Gameplay + facecam", splitscreen:"Gaming split (Cam + Game)"};
+const LAYOUT_SHORT = {blur:"Blurred fill", zoom:"Zoomed in", crop:"Fill screen", left:"Keep left", right:"Keep right", fit:"Black bars", split:"Split screen", gameplay:"Gameplay + facecam", splitscreen:"Gaming split (Cam + Game)", custom:"Custom layout"};
 /* The language spoken in the video picks which speech model writes the transcript. Languages other than English
    need their model downloaded once (Settings → Speech models). */
 const LANG_NATIVE = {ar:"العربية"};
@@ -1451,7 +1845,13 @@ function setLang(v) {   // when the creator is changed in the add bar, their lan
   const i = $("#o_lang"); if (!i || !speechLangs()[v]) return;
   i.value = v; i.parentElement.querySelectorAll("[data-seg]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
 }
-document.addEventListener("change", e => { if (e.target.id === "o_creator") setLang(S.creators.find(x => x.id === e.target.value)?.lang || "en"); });
+document.addEventListener("change", e => {
+  if (e.target.id === "o_creator") setLang(S.creators.find(x => x.id === e.target.value)?.lang || "en");
+  if (e.target.id === "c_layout") {
+    const box = $("#c_custom_box");
+    if (box) box.style.display = e.target.value === "custom" ? "block" : "none";
+  }
+});
 const CAP_LOOK = {bounce:{font:"'Archivo Black'", hl:"#FFFF00", up:true}, hype:{font:"Anton", hl:"#FF3C3C", up:true}, clean:{font:"Poppins", hl:"#6BD7FF", up:false, w:800}};
 function capPrev(k) {
   const s = CAP_LOOK[k] || {font:"inherit", hl:"#FF8B33", up:true};
@@ -1934,10 +2334,47 @@ function drawCreatorForm() {
         <label class="f">Minimum gap between live clips (minutes)<input data-k="min_gap_min" type="number" min="0" max="60" value="${c.min_gap_min}"></label>
         <label class="f span">Always clip the last 30 seconds when someone says<input data-k="trigger_words" value="${esc(c.trigger_words)}" placeholder="clip that, clip it"><small class="sub" style="font-weight:400">Separate phrases with commas. Matched on the transcript, so it needs no AI call.</small></label>
       </div></div>
-    <div class="card"><h2>Clips</h2><p class="help">How this creator's clips look.</p>
+    <div class="card"><h2>Clips & Layout</h2><p class="help">How this creator's clips look and where the facecam is located.</p>
       <div class="fields"><label class="sw span"><input type="checkbox" data-k="captions" data-caption-toggle ${c.captions === false ? "" : "checked"}>Generate captions</label>
         <label class="f">Caption style<select data-k="style" data-caption-style ${c.captions === false ? "disabled" : ""}>${opts(S.status.styles, c.style)}</select></label>
-        <label class="f">Layout<select data-k="layout">${opts(S.status.layouts, c.layout)}</select></label>
+        <label class="f">Layout<select data-k="layout" id="c_layout">${opts(S.status.layouts, c.layout)}</select></label>
+        <label class="f">Watermark / Handle on every clip<input data-k="handle" value="${esc(c.handle || "")}" placeholder="@creator_handle"></label>
+        <label class="f">Handle position<select data-k="handle_pos">${opts({top_right:"Top right", bottom_right:"Bottom right", top_left:"Top left", bottom_left:"Bottom left", below_cam:"Below facecam", bottom_center:"Bottom center"}, c.handle_pos || "top_right")}</select></label>
+        <div class="span">
+          <button type="button" class="btn primary" data-act="open_creator_visual_studio" style="width:100%;margin:10px 0;display:flex;align-items:center;justify-content:center;gap:8px">
+            ${ic("sliders")} Visual Layout Studio for ${esc(c.name)}
+          </button>
+        </div>
+
+        <div class="span" style="border-top:1px solid var(--line);padding-top:14px;margin-top:6px">
+          <h3 style="font-size:14px;margin-bottom:4px;color:var(--brand-ink)">Creator Facecam Positioning</h3>
+          <p class="help" style="margin-bottom:10px">Set the webcam crop coordinates for this creator, or pick a preset corner. Clips from this creator's stream will use this framing automatically.</p>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <label class="f">X (pixels)<input data-k="facecam_x" type="number" value="${Array.isArray(c.facecam) ? c.facecam[0] : 12}"></label>
+            <label class="f">Y (pixels)<input data-k="facecam_y" type="number" value="${Array.isArray(c.facecam) ? c.facecam[1] : 388}"></label>
+            <label class="f">Width (pixels)<input data-k="facecam_w" type="number" value="${Array.isArray(c.facecam) ? c.facecam[2] : 307}"></label>
+            <label class="f">Height (pixels)<input data-k="facecam_h" type="number" value="${Array.isArray(c.facecam) ? c.facecam[3] : 316}"></label>
+          </div>
+          <div class="row" style="margin-top:8px;gap:6px">
+            <button type="button" class="btn sm ghost" data-act="c_cam_preset" data-val="bl">Bottom-Left</button>
+            <button type="button" class="btn sm ghost" data-act="c_cam_preset" data-val="br">Bottom-Right</button>
+            <button type="button" class="btn sm ghost" data-act="c_cam_preset" data-val="tl">Top-Left</button>
+            <button type="button" class="btn sm ghost" data-act="c_cam_preset" data-val="tr">Top-Right</button>
+            <button type="button" class="btn sm ghost" data-act="c_cam_preset" data-val="clear">Auto-detect</button>
+          </div>
+        </div>
+
+        <div class="span" id="c_custom_box" style="border-top:1px solid var(--line);padding-top:14px;margin-top:6px;display:${c.layout === 'custom' ? 'block' : 'none'}">
+          <h3 style="font-size:14px;margin-bottom:4px;color:var(--brand-ink)">Custom Layout Designer</h3>
+          <p class="help" style="margin-bottom:10px">Customize the split ratio, framing and camera placement for this creator.</p>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+            <label class="f">Camera Placement<select data-k="custom_cam_pos">${opts({top:"Top half", bottom:"Bottom half", pip_br:"PIP Floating (Bottom-Right)", pip_bl:"PIP Floating (Bottom-Left)", pip_tr:"PIP Floating (Top-Right)", pip_tl:"PIP Floating (Top-Left)"}, (c.custom_layout || {}).cam_pos || "top")}</select></label>
+            <label class="f">Split Ratio<select data-k="custom_split_ratio">${opts({50:"50% Cam / 50% Game", 40:"40% Cam / 60% Game", 60:"60% Cam / 40% Game", 33:"33% Cam / 67% Game"}, String((c.custom_layout || {}).split_ratio || 50))}</select></label>
+            <label class="f">Camera Fit<select data-k="custom_cam_fit">${opts({fit:"Fit full head + blurred bg", fill:"Fill / Zoom to crop"}, (c.custom_layout || {}).cam_fit || "fit")}</select></label>
+            <label class="f">Gameplay Crop<select data-k="custom_game_crop">${opts({auto:"Auto offset (hide webcam)", center:"Center", left:"Keep Left", right:"Keep Right"}, (c.custom_layout || {}).game_crop || "auto")}</select></label>
+          </div>
+        </div>
+
         <label class="f">Game<input data-k="game" value="${esc(c.game || "")}" placeholder="Read from the title"><small class="sub" style="font-weight:400">Left empty, the game is read from the stream's title. Set it for a streamer whose title says nothing: GTA 6, Fortnite, Elden Ring.</small></label>
         <label class="f">Shortest clip (seconds)<input data-k="min_len" type="number" value="${c.min_len}"></label>
         <label class="f">Longest clip (seconds)<input data-k="max_len" type="number" value="${c.max_len}"></label>
@@ -1958,7 +2395,32 @@ function drawCreatorForm() {
       <button class="btn danger" data-act="delcreator">${ic("trash")}Delete creator</button></div>
     <div class="savebar" id="savebar"><span>${ic("warn")}You have unsaved changes</span><button class="btn ghost" data-act="cdiscard">Discard</button><button class="btn primary" data-act="csave">${ic("check")}Save changes</button></div>`;
 }
-const creatorForm = () => { const d = {}; $$("#cform [data-k]").forEach(i => { if (i.type === "radio") { if (i.checked) d[i.dataset.k] = i.value; } else d[i.dataset.k] = i.type === "checkbox" ? i.checked : i.value; }); d.accounts = $$("#cform [data-acc]:checked").map(i => i.value); return d; };
+const creatorForm = () => {
+  const d = {};
+  $$("#cform [data-k]").forEach(i => {
+    if (i.type === "radio") {
+      if (i.checked) d[i.dataset.k] = i.value;
+    } else {
+      d[i.dataset.k] = i.type === "checkbox" ? i.checked : i.type === "number" ? Number(i.value) : i.value;
+    }
+  });
+  d.accounts = $$("#cform [data-acc]:checked").map(i => i.value);
+  const fw = Number(d.facecam_w || 0), fh = Number(d.facecam_h || 0);
+  if (fw > 8 && fh > 8) {
+    d.facecam = [Number(d.facecam_x || 0), Number(d.facecam_y || 0), fw, fh];
+  } else if (d.facecam_x === 0 && d.facecam_y === 0 && fw === 0 && fh === 0) {
+    d.facecam = null;
+  }
+  if (d.custom_cam_pos || d.custom_split_ratio) {
+    d.custom_layout = {
+      cam_pos: d.custom_cam_pos || "top",
+      split_ratio: Number(d.custom_split_ratio || 50),
+      cam_fit: d.custom_cam_fit || "fit",
+      game_crop: d.custom_game_crop || "auto"
+    };
+  }
+  return d;
+};
 const dirty = on => $("#savebar")?.classList.toggle("on", on);
 async function saveCreator(quiet) {
   try { await send(`/api/creators/${creatorId()}`, creatorForm(), "PUT"); dirty(false); if (!quiet) toast("Saved", "ok"); await tick(); return true; }
@@ -2257,8 +2719,32 @@ function drawClipDlg(full) {
         <label class="sw"><input type="checkbox" data-f="captions" data-caption-toggle ${c.captions === false ? "" : "checked"}>Generate captions</label>
         <div class="two"><label class="f">Caption style<select data-f="style" data-caption-style ${c.captions === false ? "disabled" : ""}>${opts(S.status.styles, c.style)}</select></label>
           <label class="f">Layout<select data-f="layout">${opts(S.status.layouts, c.layout)}</select></label></div>
+        <div class="two"><label class="f">Handle / Watermark text<input data-f="handle" value="${esc(c.handle || '')}" placeholder="@creator"></label>
+          <label class="f">Handle position<select data-f="handle_pos">${opts({top_right:"Top right", bottom_right:"Bottom right", top_left:"Top left", bottom_left:"Bottom left", below_cam:"Below facecam", bottom_center:"Bottom center"}, c.handle_pos || "top_right")}</select></label></div>
+        <button type="button" class="btn primary" data-act="open_visual_studio" style="width:100%;margin:10px 0;display:flex;align-items:center;justify-content:center;gap:8px">
+          ${ic("sliders")} Visual Layout & Facecam Studio
+        </button>
+        <input type="hidden" data-f="custom_layout_json" id="d_custom_layout" value="${esc(JSON.stringify(c.custom_layout || {}))}">
         <div class="two"><label class="f">Start (seconds)<input data-f="start" type="number" step="0.5" value="${c.start}"></label>
           <label class="f">End (seconds)<input data-f="end" type="number" step="0.5" value="${c.end}"></label></div>
+
+        <details class="face-adj" style="margin:8px 0;border:1px solid var(--line);border-radius:var(--r);padding:10px 12px" ${c.facecam || c.layout === 'splitscreen' || c.layout === 'gameplay' || c.layout === 'custom' ? "open" : ""}>
+          <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--brand-ink);user-select:none">Manual Facecam Adjustments</summary>
+          <p class="help" style="margin:6px 0 10px;font-size:12px">Crop coordinates on the source video. Adjust X, Y, Width, and Height or use quick presets.</p>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <label class="f" style="font-size:12px">X<input data-f="facecam_x" type="number" value="${Array.isArray(c.facecam) ? c.facecam[0] : 12}"></label>
+            <label class="f" style="font-size:12px">Y<input data-f="facecam_y" type="number" value="${Array.isArray(c.facecam) ? c.facecam[1] : 388}"></label>
+            <label class="f" style="font-size:12px">Width<input data-f="facecam_w" type="number" value="${Array.isArray(c.facecam) ? c.facecam[2] : 307}"></label>
+            <label class="f" style="font-size:12px">Height<input data-f="facecam_h" type="number" value="${Array.isArray(c.facecam) ? c.facecam[3] : 316}"></label>
+          </div>
+          <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">
+            <button type="button" class="btn sm ghost" data-act="cam_preset" data-val="bl">Bottom-Left</button>
+            <button type="button" class="btn sm ghost" data-act="cam_preset" data-val="br">Bottom-Right</button>
+            <button type="button" class="btn sm ghost" data-act="cam_preset" data-val="tl">Top-Left</button>
+            <button type="button" class="btn sm ghost" data-act="cam_preset" data-val="tr">Top-Right</button>
+            ${j.creator ? `<button type="button" class="btn sm" data-act="save_creator_cam" data-c="${esc(j.creator)}" title="Save these coordinates as the default for this creator">Apply to Creator</button>` : ""}
+          </div>
+        </details>
         <div class="row" style="justify-content:space-between;align-items:center"><h3>Post text</h3>
           <button class="btn sm" data-act="writetext">Write again with AI</button></div>
         <label class="f">Title<input data-f="title" value="${esc(c.title)}"></label>
@@ -2284,6 +2770,792 @@ function postText() {   // the post text as it is in the clip editor right now
 }
 $("#clipdlg").addEventListener("close", () => { $("#clipdlg").innerHTML = ""; D.jid = null; });
 $("#clipdlg").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+$("#layoutdlg").addEventListener("close", () => { $("#layoutdlg").innerHTML = ""; });
+$("#layoutdlg").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+
+/* ============================================================ Visual Layout Studio Pro */
+const LS = {
+  mode: "clip",
+  jid: null,
+  cid: null,
+  creatorId: null,
+  videoW: 1280,
+  videoH: 720,
+  selectedLayer: "facecam",
+  facecam: [12, 388, 307, 316],
+  gameplay: [0, 0, 1280, 720],
+  cam_pos: "top",
+  split_ratio: 50,
+  cam_fit: "fit",
+  handle: "",
+  handle_pos: "top_right",
+  aspectLock: "free",
+  safeZone: "off",
+  frameTime: 1.5,
+  clipStart: 0,
+  clipEnd: 30,
+  drag: null
+};
+
+function openVisualLayoutStudio(cfg) {
+  LS.mode = cfg.mode || "clip";
+  LS.jid = cfg.jid || null;
+  LS.cid = cfg.cid || null;
+  LS.creatorId = cfg.creatorId || null;
+  LS.selectedLayer = "facecam";
+  LS.aspectLock = "free";
+  LS.safeZone = "off";
+  LS.frameTime = 1.5;
+  LS.drag = null;
+
+  let frameUrl = "";
+  if (LS.mode === "clip") {
+    const j = jobOf(LS.jid), c = j?.clips.find(x => x.id === LS.cid);
+    if (!c) return;
+    LS.creatorId = j.creator || null;
+    LS.clipStart = Number(c.start) || 0;
+    LS.clipEnd = Number(c.end) || (LS.clipStart + 30);
+    LS.frameTime = Math.min(LS.clipEnd - 0.2, Math.max(0.5, 1.5));
+    LS.facecam = Array.isArray(c.facecam) && c.facecam.length === 4 ? [...c.facecam] : [12, 388, 307, 316];
+    const cl = c.custom_layout || {};
+    LS.cam_pos = cl.cam_pos || "top";
+    LS.split_ratio = Number(cl.split_ratio) || 50;
+    LS.cam_fit = cl.cam_fit || "fit";
+    LS.gameplay = Array.isArray(cl.gameplay_box) && cl.gameplay_box.length === 4 ? [...cl.gameplay_box] : [0, 0, 1280, 720];
+    LS.handle = c.handle || "";
+    LS.handle_pos = c.handle_pos || "top_right";
+    frameUrl = `/api/jobs/${LS.jid}/clips/${LS.cid}/source-frame?t=${LS.frameTime}&v=${Date.now()}`;
+  } else {
+    const c = S.creators.find(x => x.id === LS.creatorId);
+    if (!c) return;
+    LS.facecam = Array.isArray(c.facecam) && c.facecam.length === 4 ? [...c.facecam] : [12, 388, 307, 316];
+    const cl = c.custom_layout || {};
+    LS.cam_pos = cl.cam_pos || "top";
+    LS.split_ratio = Number(cl.split_ratio) || 50;
+    LS.cam_fit = cl.cam_fit || "fit";
+    LS.gameplay = Array.isArray(cl.gameplay_box) && cl.gameplay_box.length === 4 ? [...cl.gameplay_box] : [0, 0, 1280, 720];
+    LS.handle = c.handle || "";
+    LS.handle_pos = c.handle_pos || "top_right";
+    frameUrl = `/api/creators/${LS.creatorId}/source-frame?v=${Date.now()}`;
+  }
+
+  const dlg = $("#layoutdlg");
+  dlg.innerHTML = `
+    <div class="ls-container">
+      <div class="ls-header">
+        <div class="ls-title-area">
+          <h2>${ic("sliders")} Visual Layout & Facecam Studio</h2>
+          <span class="ls-badge">Pro Studio</span>
+        </div>
+        <button type="button" class="btn icon ghost" data-act="ls_close" aria-label="Close">${ic("x")}</button>
+      </div>
+      <div class="ls-body">
+        <div class="ls-stage-column">
+          <div class="ls-toolbar" style="padding:6px 12px">
+            <div class="ls-toolgroup ls-preset-group">
+              <span class="ls-label" style="color:var(--brand);font-weight:700">⚡ Presets:</span>
+              <button type="button" class="ls-preset-btn" data-act="ls_apply_style" data-style="classic" title="Classic 45/55 Split with blurred wings">Classic Split (45/55)</button>
+              <button type="button" class="ls-preset-btn" data-act="ls_apply_style" data-style="balanced" title="50/50 Equal Split">50/50 Balanced</button>
+              <button type="button" class="ls-preset-btn" data-act="ls_apply_style" data-style="reaction" title="60/40 Reaction Style">Reaction (60/40)</button>
+              <button type="button" class="ls-preset-btn" data-act="ls_apply_style" data-style="pip" title="Floating Corner Webcam">Corner PiP</button>
+              <button type="button" class="ls-preset-btn" data-act="ls_apply_style" data-style="fullgame" title="Full 9:16 Vertical Gameplay">Full Game</button>
+            </div>
+            ${LS.mode === "clip" ? `
+              <div class="ls-toolgroup ls-frame-stepper">
+                <span class="ls-label">Frame:</span>
+                <button type="button" class="btn xs ghost" data-act="ls_step_frame" data-dir="-1" title="Previous 2 seconds">◀ -2s</button>
+                <span class="ls-frame-time" id="ls_frame_time_badge">${LS.frameTime.toFixed(1)}s</span>
+                <button type="button" class="btn xs ghost" data-act="ls_step_frame" data-dir="1" title="Next 2 seconds">+2s ▶</button>
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="ls-toolbar">
+            <div class="ls-toolgroup">
+              <span class="ls-label">Layer:</span>
+              <button type="button" class="ls-btn-layer active" id="ls_tool_facecam" data-act="ls_select_layer" data-layer="facecam">
+                <span class="color-dot" style="background:#FF8B33"></span> Facecam
+              </button>
+              <button type="button" class="ls-btn-layer" id="ls_tool_gameplay" data-act="ls_select_layer" data-layer="gameplay">
+                <span class="color-dot" style="background:#00F0FF"></span> Gameplay
+              </button>
+            </div>
+            <div class="ls-toolgroup">
+              <span class="ls-label">Cam Ratio:</span>
+              <div class="ls-aspect-bar">
+                <button type="button" class="ls-aspect-btn active" data-act="ls_aspect_lock" data-val="free" title="Freeform resize">Free</button>
+                <button type="button" class="ls-aspect-btn" data-act="ls_aspect_lock" data-val="1:1" title="1:1 Square webcam">1:1</button>
+                <button type="button" class="ls-aspect-btn" data-act="ls_aspect_lock" data-val="4:3" title="4:3 Classic webcam">4:3</button>
+                <button type="button" class="ls-aspect-btn" data-act="ls_aspect_lock" data-val="16:9" title="16:9 Widescreen camera">16:9</button>
+              </div>
+            </div>
+            <div class="ls-toolgroup">
+              <span class="ls-label">Corner:</span>
+              <button type="button" class="btn sm ghost" data-act="ls_cam_preset" data-val="bl">BL</button>
+              <button type="button" class="btn sm ghost" data-act="ls_cam_preset" data-val="br">BR</button>
+              <button type="button" class="btn sm ghost" data-act="ls_cam_preset" data-val="tl">TL</button>
+              <button type="button" class="btn sm ghost" data-act="ls_cam_preset" data-val="tr">TR</button>
+              <button type="button" class="btn sm ghost" data-act="ls_cam_preset" data-val="auto" title="Auto-detect webcam corner">Auto Detect</button>
+            </div>
+            <div class="ls-toolgroup">
+              <span class="ls-label">Game Crop:</span>
+              <button type="button" class="btn sm ghost" data-act="ls_game_preset" data-val="full">Full 16:9</button>
+              <button type="button" class="btn sm ghost" data-act="ls_game_preset" data-val="center">Center</button>
+              <button type="button" class="btn sm ghost" data-act="ls_game_preset" data-val="right">Right</button>
+              <button type="button" class="btn sm ghost" data-act="ls_game_preset" data-val="left">Left</button>
+            </div>
+          </div>
+
+          <div class="ls-viewport-wrap" id="ls_viewport_wrap">
+            <div class="ls-viewport" id="ls_viewport">
+              <img id="ls_source_img" src="${frameUrl}" alt="Source frame">
+              <div class="ls-overlay" id="ls_overlay">
+                <div class="ls-box ls-box-facecam selected" id="ls_box_facecam">
+                  <div class="ls-box-header">
+                    <span>🎥 Facecam</span>
+                    <span id="ls_facecam_dims_text">0 × 0</span>
+                  </div>
+                  <div class="ls-handle handle-nw" data-h="nw"></div>
+                  <div class="ls-handle handle-n" data-h="n"></div>
+                  <div class="ls-handle handle-ne" data-h="ne"></div>
+                  <div class="ls-handle handle-e" data-h="e"></div>
+                  <div class="ls-handle handle-se" data-h="se"></div>
+                  <div class="ls-handle handle-s" data-h="s"></div>
+                  <div class="ls-handle handle-sw" data-h="sw"></div>
+                  <div class="ls-handle handle-w" data-h="w"></div>
+                </div>
+
+                <div class="ls-box ls-box-gameplay" id="ls_box_gameplay">
+                  <div class="ls-box-header">
+                    <span>🎮 Gameplay</span>
+                    <span id="ls_gameplay_dims_text">0 × 0</span>
+                  </div>
+                  <div class="ls-handle handle-nw" data-h="nw"></div>
+                  <div class="ls-handle handle-n" data-h="n"></div>
+                  <div class="ls-handle handle-ne" data-h="ne"></div>
+                  <div class="ls-handle handle-e" data-h="e"></div>
+                  <div class="ls-handle handle-se" data-h="se"></div>
+                  <div class="ls-handle handle-s" data-h="s"></div>
+                  <div class="ls-handle handle-sw" data-h="sw"></div>
+                  <div class="ls-handle handle-w" data-h="w"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ls-stage-hint">
+            💡 <span><b>Shortcuts:</b> <b>Arrow Keys</b> nudge by 1px (or <b>Shift+Arrow</b> for 10px). <b>Tab</b> switches layers. Hold <b>Shift</b> to lock ratio while resizing. Drag the split divider directly on the phone preview!</span>
+          </div>
+        </div>
+
+        <div class="ls-sidebar">
+          <div class="ls-preview-card">
+            <div class="ls-preview-title" style="margin-bottom:4px">Real-time 9:16 Preview</div>
+            <div class="ls-safezone-bar" style="margin-bottom:10px">
+              <span style="font-size:11px;font-weight:600;color:var(--dim);margin-right:2px">🛡️ Safe Zone:</span>
+              <button type="button" class="ls-safezone-btn active" data-act="ls_safezone" data-val="off">Off</button>
+              <button type="button" class="ls-safezone-btn" data-act="ls_safezone" data-val="tiktok">TikTok</button>
+              <button type="button" class="ls-safezone-btn" data-act="ls_safezone" data-val="shorts">Shorts</button>
+              <button type="button" class="ls-safezone-btn" data-act="ls_safezone" data-val="reels">Reels</button>
+            </div>
+            <div class="ls-phone-mockup">
+              <canvas id="ls_preview_canvas" width="540" height="960" title="Drag the divider line up or down to adjust split"></canvas>
+              <div class="ls-phone-notch"></div>
+            </div>
+          </div>
+
+          <div class="ls-controls-card">
+            <h3>Layout Options</h3>
+            <label class="f" style="margin-bottom:10px">Camera Placement
+              <select id="ls_cam_pos">
+                ${opts({
+                  top: "Top half (Facecam on top)",
+                  bottom: "Bottom half (Gameplay on top)",
+                  pip_br: "PIP Floating (Bottom-Right)",
+                  pip_bl: "PIP Floating (Bottom-Left)",
+                  pip_tr: "PIP Floating (Top-Right)",
+                  pip_tl: "PIP Floating (Top-Left)"
+                }, LS.cam_pos)}
+              </select>
+            </label>
+
+            <div id="ls_split_box" style="margin-bottom:10px;display:${LS.cam_pos.startsWith('pip') ? 'none' : 'block'}">
+              <label class="f">
+                <div style="display:flex;justify-content:space-between">
+                  <span>Split Ratio</span>
+                  <span id="ls_split_val_label">${LS.split_ratio}% Cam / ${100 - LS.split_ratio}% Game</span>
+                </div>
+                <input type="range" id="ls_split_slider" min="25" max="75" value="${LS.split_ratio}" step="1">
+              </label>
+              <div class="row" style="gap:4px;margin-top:4px">
+                <button type="button" class="btn xs ghost" data-act="ls_set_split" data-val="50">50/50</button>
+                <button type="button" class="btn xs ghost" data-act="ls_set_split" data-val="40">40/60</button>
+                <button type="button" class="btn xs ghost" data-act="ls_set_split" data-val="33">33/67</button>
+                <button type="button" class="btn xs ghost" data-act="ls_set_split" data-val="60">60/40</button>
+              </div>
+            </div>
+
+            <label class="f" style="margin-bottom:10px">Facecam Framing
+              <select id="ls_cam_fit">
+                ${opts({
+                  fit: "Fit full head + blurred background (Recommended)",
+                  fill: "Fill / Zoom to crop edges"
+                }, LS.cam_fit)}
+              </select>
+            </label>
+
+            <div style="border-top:1px solid var(--line);margin:14px 0 10px;padding-top:10px">
+              <h3 style="margin-bottom:8px">Watermark & Handle</h3>
+              <label class="f" style="margin-bottom:8px">Handle / Text
+                <input id="ls_handle_input" value="${esc(LS.handle)}" placeholder="@creator_name">
+              </label>
+              <label class="f" style="margin-bottom:12px">Position
+                <select id="ls_handle_pos">
+                  ${opts({
+                    top_right: "Top right",
+                    bottom_right: "Bottom right",
+                    top_left: "Top left",
+                    bottom_left: "Bottom left",
+                    below_cam: "Below facecam",
+                    bottom_center: "Bottom center"
+                  }, LS.handle_pos)}
+                </select>
+              </label>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+              <button type="button" class="btn primary" data-act="ls_apply" style="width:100%;justify-content:center">
+                ${LS.mode === 'clip' ? 'Save & Re-make Clip' : 'Save Creator Layout'}
+              </button>
+              ${(LS.mode === 'clip' && LS.creatorId) ? `
+                <button type="button" class="btn" data-act="ls_save_creator_default" style="width:100%;justify-content:center">
+                  Save as Default for Creator
+                </button>
+              ` : ''}
+              <button type="button" class="btn ghost" data-act="ls_close" style="width:100%;justify-content:center">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  dlg.showModal();
+
+  const img = $("#ls_source_img");
+  img.onload = () => {
+    LS.videoW = img.naturalWidth || 1280;
+    LS.videoH = img.naturalHeight || 720;
+    if (!LS.gameplay || LS.gameplay[2] === 0 || LS.gameplay[3] === 0) {
+      LS.gameplay = [0, 0, LS.videoW, LS.videoH];
+    }
+    updateLSBoxes();
+    updateLSPreview();
+  };
+  if (img.complete && img.naturalWidth) img.onload();
+
+  $("#ls_cam_pos").addEventListener("change", e => {
+    LS.cam_pos = e.target.value;
+    $("#ls_split_box").style.display = LS.cam_pos.startsWith("pip") ? "none" : "block";
+    updateLSPreview();
+  });
+  $("#ls_split_slider").addEventListener("input", e => {
+    LS.split_ratio = Number(e.target.value);
+    $("#ls_split_val_label").textContent = `${LS.split_ratio}% Cam / ${100 - LS.split_ratio}% Game`;
+    updateLSPreview();
+  });
+  $("#ls_cam_fit").addEventListener("change", e => {
+    LS.cam_fit = e.target.value;
+    updateLSPreview();
+  });
+  $("#ls_handle_input").addEventListener("input", e => {
+    LS.handle = e.target.value;
+    updateLSPreview();
+  });
+  $("#ls_handle_pos").addEventListener("change", e => {
+    LS.handle_pos = e.target.value;
+    updateLSPreview();
+  });
+
+  initLSPointerEvents();
+}
+
+function updateLSBoxes() {
+  const img = $("#ls_source_img");
+  if (!img || !img.offsetWidth || !LS.videoW) return;
+  const scaleX = img.offsetWidth / LS.videoW;
+  const scaleY = img.offsetHeight / LS.videoH;
+
+  const fc = $("#ls_box_facecam");
+  if (fc) {
+    fc.style.left = (LS.facecam[0] * scaleX) + "px";
+    fc.style.top = (LS.facecam[1] * scaleY) + "px";
+    fc.style.width = (LS.facecam[2] * scaleX) + "px";
+    fc.style.height = (LS.facecam[3] * scaleY) + "px";
+    const dt = $("#ls_facecam_dims_text");
+    if (dt) dt.textContent = `${LS.facecam[2]} × ${LS.facecam[3]}`;
+  }
+
+  const gp = $("#ls_box_gameplay");
+  if (gp) {
+    gp.style.left = (LS.gameplay[0] * scaleX) + "px";
+    gp.style.top = (LS.gameplay[1] * scaleY) + "px";
+    gp.style.width = (LS.gameplay[2] * scaleX) + "px";
+    gp.style.height = (LS.gameplay[3] * scaleY) + "px";
+    const dt = $("#ls_gameplay_dims_text");
+    if (dt) dt.textContent = `${LS.gameplay[2]} × ${LS.gameplay[3]}`;
+  }
+}
+
+function initLSPointerEvents() {
+  function startDrag(e, type, layer, handle) {
+    LS.selectedLayer = layer;
+    $(".ls-box-facecam")?.classList.toggle("selected", layer === "facecam");
+    $(".ls-box-gameplay")?.classList.toggle("selected", layer === "gameplay");
+    $("#ls_tool_facecam")?.classList.toggle("active", layer === "facecam");
+    $("#ls_tool_gameplay")?.classList.toggle("active", layer === "gameplay");
+
+    LS.drag = {
+      type: type,
+      layer: layer,
+      handle: handle,
+      startX: e.clientX,
+      startY: e.clientY,
+      initBox: [...LS[layer]]
+    };
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  $("#ls_box_facecam")?.addEventListener("pointerdown", e => {
+    if (e.target.classList.contains("ls-handle")) return;
+    startDrag(e, "move", "facecam", null);
+  });
+  $("#ls_box_gameplay")?.addEventListener("pointerdown", e => {
+    if (e.target.classList.contains("ls-handle")) return;
+    startDrag(e, "move", "gameplay", null);
+  });
+
+  $$("#ls_box_facecam .ls-handle").forEach(h => {
+    h.addEventListener("pointerdown", e => startDrag(e, "resize", "facecam", h.dataset.h));
+  });
+  $$("#ls_box_gameplay .ls-handle").forEach(h => {
+    h.addEventListener("pointerdown", e => startDrag(e, "resize", "gameplay", h.dataset.h));
+  });
+
+  // Direct split divider drag on phone preview canvas
+  const previewCanvas = $("#ls_preview_canvas");
+  if (previewCanvas) {
+    previewCanvas.addEventListener("pointerdown", e => {
+      if (LS.cam_pos.startsWith("pip")) return;
+      const rect = previewCanvas.getBoundingClientRect();
+      const relY = (e.clientY - rect.top) / rect.height;
+      const curRatio = LS.split_ratio / 100.0;
+      if (Math.abs(relY - curRatio) < 0.08) {
+        LS.drag = { type: "divider", startY: e.clientY };
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+
+    previewCanvas.addEventListener("pointermove", e => {
+      if (LS.cam_pos.startsWith("pip")) {
+        previewCanvas.style.cursor = "default";
+        return;
+      }
+      const rect = previewCanvas.getBoundingClientRect();
+      const relY = (e.clientY - rect.top) / rect.height;
+      const curRatio = LS.split_ratio / 100.0;
+      previewCanvas.style.cursor = Math.abs(relY - curRatio) < 0.08 ? "row-resize" : "default";
+    });
+  }
+}
+
+// Global keyboard navigation for pixel-perfect nudging
+window.addEventListener("keydown", e => {
+  if (!$("#layoutdlg")?.open) return;
+  if (["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
+
+  const step = e.shiftKey ? 10 : 1;
+  const layer = LS.selectedLayer || "facecam";
+  const box = LS[layer];
+  if (!box) return;
+
+  if (e.key === "ArrowLeft") {
+    e.preventDefault();
+    box[0] = Math.max(0, box[0] - step);
+    updateLSBoxes();
+    updateLSPreview();
+  } else if (e.key === "ArrowRight") {
+    e.preventDefault();
+    box[0] = Math.min(LS.videoW - box[2], box[0] + step);
+    updateLSBoxes();
+    updateLSPreview();
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    box[1] = Math.max(0, box[1] - step);
+    updateLSBoxes();
+    updateLSPreview();
+  } else if (e.key === "ArrowDown") {
+    e.preventDefault();
+    box[1] = Math.min(LS.videoH - box[3], box[1] + step);
+    updateLSBoxes();
+    updateLSPreview();
+  } else if (e.key === "Tab") {
+    e.preventDefault();
+    LS.selectedLayer = layer === "facecam" ? "gameplay" : "facecam";
+    $(".ls-box-facecam")?.classList.toggle("selected", LS.selectedLayer === "facecam");
+    $(".ls-box-gameplay")?.classList.toggle("selected", LS.selectedLayer === "gameplay");
+    $("#ls_tool_facecam")?.classList.toggle("active", LS.selectedLayer === "facecam");
+    $("#ls_tool_gameplay")?.classList.toggle("active", LS.selectedLayer === "gameplay");
+  }
+});
+
+window.addEventListener("resize", () => {
+  if ($("#layoutdlg")?.open) updateLSBoxes();
+});
+
+window.addEventListener("pointermove", e => {
+  if (!LS.drag) return;
+
+  // Divider drag
+  if (LS.drag.type === "divider") {
+    const canvas = $("#ls_preview_canvas");
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const relY = (e.clientY - rect.top) / rect.height;
+    let pct = Math.round(relY * 100);
+    pct = Math.max(25, Math.min(75, pct));
+    LS.split_ratio = pct;
+    const sl = $("#ls_split_slider"); if (sl) sl.value = pct;
+    const lbl = $("#ls_split_val_label"); if (lbl) lbl.textContent = `${pct}% Cam / ${100 - pct}% Game`;
+    updateLSPreview();
+    return;
+  }
+
+  const img = $("#ls_source_img");
+  if (!img || !img.offsetWidth || !LS.videoW) return;
+  const scaleX = img.offsetWidth / LS.videoW;
+  const scaleY = img.offsetHeight / LS.videoH;
+  const dx = (e.clientX - LS.drag.startX) / scaleX;
+  const dy = (e.clientY - LS.drag.startY) / scaleY;
+
+  const box = [...LS.drag.initBox];
+  if (LS.drag.type === "move") {
+    let nx = Math.round(box[0] + dx);
+    let ny = Math.round(box[1] + dy);
+    const snap = 14;
+
+    // Magnetic edge and center snapping
+    if (nx < snap) nx = 0;
+    else if (Math.abs(nx - (LS.videoW - box[2])) < snap) nx = LS.videoW - box[2];
+    else if (Math.abs((nx + box[2] / 2) - LS.videoW / 2) < snap) nx = Math.round((LS.videoW - box[2]) / 2);
+
+    if (ny < snap) ny = 0;
+    else if (Math.abs(ny - (LS.videoH - box[3])) < snap) ny = LS.videoH - box[3];
+    else if (Math.abs((ny + box[3] / 2) - LS.videoH / 2) < snap) ny = Math.round((LS.videoH - box[3]) / 2);
+
+    nx = Math.max(0, Math.min(LS.videoW - box[2], nx));
+    ny = Math.max(0, Math.min(LS.videoH - box[3], ny));
+    LS[LS.drag.layer][0] = nx;
+    LS[LS.drag.layer][1] = ny;
+  } else if (LS.drag.type === "resize") {
+    const h = LS.drag.handle;
+    let [x, y, w, hg] = box;
+    const minS = 40;
+
+    // Aspect ratio locking
+    let targetRatio = null;
+    if (LS.drag.layer === "facecam") {
+      if (LS.aspectLock === "1:1") targetRatio = 1.0;
+      else if (LS.aspectLock === "4:3") targetRatio = 4.0 / 3.0;
+      else if (LS.aspectLock === "16:9") targetRatio = 16.0 / 9.0;
+      else if (e.shiftKey) targetRatio = box[2] / box[3];
+    } else if (e.shiftKey) {
+      targetRatio = box[2] / box[3];
+    }
+
+    if (h.includes("w")) {
+      const maxDx = box[2] - minS;
+      const actualDx = Math.min(maxDx, Math.max(-box[0], dx));
+      x = Math.round(box[0] + actualDx);
+      w = Math.round(box[2] - actualDx);
+    }
+    if (h.includes("e")) {
+      const maxW = LS.videoW - box[0];
+      w = Math.round(Math.max(minS, Math.min(maxW, box[2] + dx)));
+    }
+    if (h.includes("n")) {
+      const maxDy = box[3] - minS;
+      const actualDy = Math.min(maxDy, Math.max(-box[1], dy));
+      y = Math.round(box[1] + actualDy);
+      hg = Math.round(box[3] - actualDy);
+    }
+    if (h.includes("s")) {
+      const maxH = LS.videoH - box[1];
+      hg = Math.round(Math.max(minS, Math.min(maxH, box[3] + dy)));
+    }
+
+    if (targetRatio && targetRatio > 0) {
+      if (h === "e" || h === "w") {
+        hg = Math.round(w / targetRatio);
+        if (box[1] + hg > LS.videoH) { hg = LS.videoH - box[1]; w = Math.round(hg * targetRatio); }
+      } else if (h === "n" || h === "s") {
+        w = Math.round(hg * targetRatio);
+        if (box[0] + w > LS.videoW) { w = LS.videoW - box[0]; hg = Math.round(w / targetRatio); }
+      } else {
+        const byWidthH = Math.round(w / targetRatio);
+        if (h.includes("n")) {
+          y = box[1] + box[3] - byWidthH;
+          if (y < 0) { y = 0; }
+        }
+        hg = byWidthH;
+        if (y + hg > LS.videoH) { hg = LS.videoH - y; w = Math.round(hg * targetRatio); }
+      }
+    }
+
+    LS[LS.drag.layer] = [x, y, w, hg];
+  }
+
+  updateLSBoxes();
+  updateLSPreview();
+});
+
+window.addEventListener("pointerup", () => {
+  if (LS.drag) LS.drag = null;
+});
+window.addEventListener("pointercancel", () => {
+  if (LS.drag) LS.drag = null;
+});
+
+function drawSafeZones(ctx, platform, CW, CH) {
+  ctx.save();
+  let safeTop = 75, safeBottom = 180, safeRight = 72, safeLeft = 16;
+  if (platform === "shorts") { safeTop = 64; safeBottom = 160; safeRight = 66; safeLeft = 16; }
+  else if (platform === "reels") { safeTop = 68; safeBottom = 150; safeRight = 62; safeLeft = 16; }
+
+  // Draw blocked danger areas
+  ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
+  ctx.fillRect(0, 0, CW, safeTop);
+  ctx.fillRect(0, CH - safeBottom, CW, safeBottom);
+  ctx.fillRect(CW - safeRight, safeTop, safeRight, CH - safeTop - safeBottom);
+
+  // Safe area border
+  ctx.strokeStyle = "#3DDC97";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 6]);
+  ctx.strokeRect(safeLeft, safeTop, CW - safeLeft - safeRight, CH - safeTop - safeBottom);
+  ctx.setLineDash([]);
+
+  // Label
+  ctx.font = "bold 13px system-ui, sans-serif";
+  ctx.fillStyle = "#3DDC97";
+  ctx.textAlign = "center";
+  ctx.fillText(`🛡️ ${platform.toUpperCase()} SAFE ZONE`, (safeLeft + (CW - safeRight)) / 2, safeTop + 24);
+
+  // Simulated right action buttons
+  const railX = CW - safeRight / 2;
+  ctx.font = "bold 10px system-ui, sans-serif";
+  ctx.textAlign = "center";
+
+  ctx.beginPath(); ctx.arc(railX, CH - safeBottom - 165, 15, 0, Math.PI * 2); ctx.fillStyle = "rgba(255,255,255,0.22)"; ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.fillText("♥ Like", railX, CH - safeBottom - 143);
+
+  ctx.beginPath(); ctx.arc(railX, CH - safeBottom - 110, 15, 0, Math.PI * 2); ctx.fillStyle = "rgba(255,255,255,0.22)"; ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.fillText("💬 1.2k", railX, CH - safeBottom - 88);
+
+  ctx.beginPath(); ctx.arc(railX, CH - safeBottom - 55, 15, 0, Math.PI * 2); ctx.fillStyle = "rgba(255,255,255,0.22)"; ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.fillText("↗ Share", railX, CH - safeBottom - 33);
+
+  // Simulated bottom text
+  ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+  ctx.font = "bold 13px system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText("@creator_handle", 20, CH - safeBottom + 35);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
+  ctx.font = "11px system-ui, sans-serif";
+  ctx.fillText("Video title and captions area...", 20, CH - safeBottom + 56);
+  ctx.fillText("🎵 Original Audio - Creator Sound", 20, CH - safeBottom + 76);
+
+  ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+  ctx.fillRect(0, CH - 4, CW, 4);
+
+  ctx.restore();
+}
+
+function updateLSPreview() {
+  const canvas = $("#ls_preview_canvas");
+  const img = $("#ls_source_img");
+  if (!canvas || !img || !img.complete || !img.naturalWidth) return;
+  const ctx = canvas.getContext("2d");
+  const CW = canvas.width, CH = canvas.height;
+  ctx.clearRect(0, 0, CW, CH);
+
+  const [fx, fy, fw, fh] = LS.facecam;
+  const [gx, gy, gw, gh] = LS.gameplay;
+
+  if (LS.cam_pos.startsWith("pip")) {
+    const gAspect = gw / gh;
+    const cAspect = CW / CH;
+    let sW = gw, sH = gh, sX = gx, sY = gy;
+    if (gAspect > cAspect) {
+      sW = gh * cAspect;
+      sX = gx + (gw - sW) / 2;
+    } else {
+      sH = gw / cAspect;
+      sY = gy + (gh - sH) / 2;
+    }
+    try {
+      ctx.drawImage(img, sX, sY, sW, sH, 0, 0, CW, CH);
+    } catch {}
+
+    const pipW = 180;
+    const pipH = Math.max(30, Math.round(pipW * (fh / fw)));
+    const margin = 16;
+    let px = margin, py = margin;
+    if (LS.cam_pos.includes("r")) px = CW - pipW - margin;
+    if (LS.cam_pos.includes("b")) py = CH - pipH - margin - 50;
+    else py = margin + 40;
+
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.6)";
+    ctx.shadowBlur = 12;
+    ctx.strokeStyle = "#FF8B33";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(px, py, pipW, pipH);
+    ctx.shadowColor = "transparent";
+    try {
+      ctx.drawImage(img, fx, fy, fw, fh, px, py, pipW, pipH);
+    } catch {}
+    ctx.restore();
+  } else {
+    const splitRatio = LS.split_ratio / 100.0;
+    const camH = Math.round(CH * splitRatio);
+    const gameH = CH - camH;
+
+    const camTop = LS.cam_pos === "top";
+    const camY = camTop ? 0 : gameH;
+    const gameY = camTop ? camH : 0;
+
+    // 1. Facecam section
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, camY, CW, camH);
+    ctx.clip();
+
+    if (LS.cam_fit === "fill") {
+      const fAspect = fw / fh;
+      const tAspect = CW / camH;
+      let sW = fw, sH = fh, sX = fx, sY = fy;
+      if (fAspect > tAspect) {
+        sW = fh * tAspect;
+        sX = fx + (fw - sW) / 2;
+      } else {
+        sH = fw / tAspect;
+        sY = fy + (fh - sH) / 2;
+      }
+      try {
+        ctx.drawImage(img, sX, sY, sW, sH, 0, camY, CW, camH);
+      } catch {}
+    } else {
+      ctx.filter = "blur(18px) brightness(0.68)";
+      try {
+        ctx.drawImage(img, fx, fy, fw, fh, -20, camY - 20, CW + 40, camH + 40);
+      } catch {}
+      ctx.filter = "none";
+
+      const fAspect = fw / fh;
+      let dw = CW, dh = camH;
+      if (fAspect > CW / camH) {
+        dh = CW / fAspect;
+      } else {
+        dw = camH * fAspect;
+      }
+      const dx = (CW - dw) / 2;
+      const dy = camY + (camH - dh) / 2;
+      try {
+        ctx.drawImage(img, fx, fy, fw, fh, dx, dy, dw, dh);
+      } catch {}
+    }
+    ctx.restore();
+
+    // 2. Gameplay section
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, gameY, CW, gameH);
+    ctx.clip();
+
+    const gAspect = gw / gh;
+    const tAspect = CW / gameH;
+    let sW = gw, sH = gh, sX = gx, sY = gy;
+    if (gAspect > tAspect) {
+      sW = gh * tAspect;
+      sX = gx + (gw - sW) / 2;
+    } else {
+      sH = gw / tAspect;
+      sY = gy + (gh - sH) / 2;
+    }
+    try {
+      ctx.drawImage(img, sX, sY, sW, sH, 0, gameY, CW, gameH);
+    } catch {}
+    ctx.restore();
+
+    ctx.fillStyle = "#1E1612";
+    ctx.fillRect(0, camTop ? camH - 2 : gameH - 2, CW, 4);
+  }
+
+  // 3. Watermark / Handle
+  if (LS.handle && LS.handle.trim()) {
+    const text = LS.handle.trim();
+    ctx.save();
+    ctx.font = "bold 22px system-ui, sans-serif";
+    ctx.textBaseline = "middle";
+    const textWidth = ctx.measureText(text).width;
+    const padX = 14;
+    const boxW = textWidth + padX * 2, boxH = 34;
+
+    let bx = 20, by = 40;
+    const pos = LS.handle_pos || "top_right";
+    if (pos === "top_right") {
+      bx = CW - boxW - 20;
+      by = 40;
+    } else if (pos === "top_left") {
+      bx = 20;
+      by = 40;
+    } else if (pos === "bottom_right") {
+      bx = CW - boxW - 20;
+      by = CH - boxH - 50;
+    } else if (pos === "bottom_left") {
+      bx = 20;
+      by = CH - boxH - 50;
+    } else if (pos === "bottom_center") {
+      bx = (CW - boxW) / 2;
+      by = CH - boxH - 50;
+    } else if (pos === "below_cam") {
+      const splitH = Math.round(CH * (LS.split_ratio / 100));
+      bx = 20;
+      by = (LS.cam_pos === "top" ? splitH : 0) + 16;
+    }
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(bx, by, boxW, boxH, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.textAlign = "center";
+    ctx.fillText(text, bx + boxW / 2, by + boxH / 2);
+    ctx.restore();
+  }
+
+  // 4. Safe Zones Overlay
+  if (LS.safeZone && LS.safeZone !== "off") {
+    drawSafeZones(ctx, LS.safeZone, CW, CH);
+  }
+}
 
 /* ============================================================ render + polling */
 function render() {
@@ -2604,6 +3876,252 @@ document.addEventListener("click", async e => {
     if (a === "accremove") {
       if (!await ask("Disconnect this account?", "Posts still waiting for it will fail.", "Disconnect", true)) return;
       await api(`/api/accounts/${d.id}`, {method:"DELETE"}); await tick(); return drawSettings();
+    }
+    if (a === "open_visual_studio") {
+      return openVisualLayoutStudio({mode: "clip", jid: D.jid, cid: D.cid});
+    }
+    if (a === "open_creator_visual_studio") {
+      const c = creator();
+      if (!c) return;
+      return openVisualLayoutStudio({mode: "creator", creatorId: c.id});
+    }
+    if (a === "ls_close") {
+      $("#layoutdlg")?.close();
+      return;
+    }
+    if (a === "ls_select_layer") {
+      LS.selectedLayer = d.layer;
+      $(".ls-box-facecam")?.classList.toggle("selected", d.layer === "facecam");
+      $(".ls-box-gameplay")?.classList.toggle("selected", d.layer === "gameplay");
+      $("#ls_tool_facecam")?.classList.toggle("active", d.layer === "facecam");
+      $("#ls_tool_gameplay")?.classList.toggle("active", d.layer === "gameplay");
+      return;
+    }
+    if (a === "ls_cam_preset") {
+      const v = d.val;
+      const W = LS.videoW || 1280, H = LS.videoH || 720;
+      if (v === "bl") LS.facecam = [Math.round(W * 0.01), Math.round(H * 0.54), Math.round(W * 0.24), Math.round(H * 0.44)];
+      if (v === "br") LS.facecam = [Math.round(W * 0.75), Math.round(H * 0.54), Math.round(W * 0.24), Math.round(H * 0.44)];
+      if (v === "tl") LS.facecam = [Math.round(W * 0.01), Math.round(H * 0.01), Math.round(W * 0.24), Math.round(H * 0.44)];
+      if (v === "tr") LS.facecam = [Math.round(W * 0.75), Math.round(H * 0.01), Math.round(W * 0.24), Math.round(H * 0.44)];
+      if (v === "auto") {
+        toast("Scanning frame for webcam…");
+        try {
+          const url = LS.mode === "clip" ? `/api/jobs/${LS.jid}/clips/${LS.cid}/detect-facecam` : `/api/creators/${LS.creatorId}/detect-facecam`;
+          const res = await api(url);
+          if (res && res.box) {
+            LS.facecam = res.box;
+            toast(`Webcam detected at ${res.corner || 'corner'}!`, "ok");
+          } else {
+            toast("Webcam corner estimated", "ok");
+          }
+        } catch (err) {
+          toast("Detection failed, kept current", "bad");
+        }
+      }
+      updateLSBoxes();
+      updateLSPreview();
+      return;
+    }
+    if (a === "ls_apply_style") {
+      const style = d.style;
+      const W = LS.videoW || 1280, H = LS.videoH || 720;
+      if (style === "classic") {
+        LS.cam_pos = "top";
+        LS.split_ratio = 45;
+        LS.cam_fit = "fit";
+        LS.aspectLock = "1:1";
+        LS.facecam[3] = LS.facecam[2];
+        LS.gameplay = [Math.round(W * 0.16), 0, Math.round(W * 0.68), H];
+      } else if (style === "balanced") {
+        LS.cam_pos = "top";
+        LS.split_ratio = 50;
+        LS.cam_fit = "fit";
+        LS.aspectLock = "free";
+        LS.gameplay = [0, 0, W, H];
+      } else if (style === "reaction") {
+        LS.cam_pos = "top";
+        LS.split_ratio = 60;
+        LS.cam_fit = "fit";
+        LS.aspectLock = "16:9";
+        LS.facecam[3] = Math.round(LS.facecam[2] * (9 / 16));
+        LS.gameplay = [0, 0, W, H];
+      } else if (style === "pip") {
+        LS.cam_pos = "pip_br";
+        LS.cam_fit = "fit";
+        LS.aspectLock = "16:9";
+        LS.gameplay = [Math.round(W * 0.22), 0, Math.round(W * 0.56), H];
+      } else if (style === "fullgame") {
+        LS.cam_pos = "top";
+        LS.split_ratio = 50;
+        LS.gameplay = [Math.round(W * 0.22), 0, Math.round(W * 0.56), H];
+      }
+
+      const cp = $("#ls_cam_pos"); if (cp) cp.value = LS.cam_pos;
+      const sl = $("#ls_split_slider"); if (sl) sl.value = LS.split_ratio;
+      const lbl = $("#ls_split_val_label"); if (lbl) lbl.textContent = `${LS.split_ratio}% Cam / ${100 - LS.split_ratio}% Game`;
+      const cf = $("#ls_cam_fit"); if (cf) cf.value = LS.cam_fit;
+      const sb = $("#ls_split_box"); if (sb) sb.style.display = LS.cam_pos.startsWith("pip") ? "none" : "block";
+
+      $$(".ls-preset-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.style === style));
+      $$(".ls-aspect-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.val === LS.aspectLock));
+
+      updateLSBoxes();
+      updateLSPreview();
+      return toast("Preset layout applied!", "ok");
+    }
+    if (a === "ls_aspect_lock") {
+      LS.aspectLock = d.val;
+      if (d.val === "1:1") {
+        LS.facecam[3] = LS.facecam[2];
+      } else if (d.val === "4:3") {
+        LS.facecam[3] = Math.round(LS.facecam[2] * (3 / 4));
+      } else if (d.val === "16:9") {
+        LS.facecam[3] = Math.round(LS.facecam[2] * (9 / 16));
+      }
+      $$(".ls-aspect-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.val === d.val));
+      updateLSBoxes();
+      updateLSPreview();
+      return;
+    }
+    if (a === "ls_safezone") {
+      LS.safeZone = d.val;
+      $$(".ls-safezone-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.val === d.val));
+      updateLSPreview();
+      return;
+    }
+    if (a === "ls_step_frame") {
+      if (LS.mode !== "clip") return;
+      const dir = Number(d.dir);
+      let newT = Math.round((LS.frameTime + dir * 2) * 10) / 10;
+      newT = Math.max(0.5, Math.min(LS.clipEnd - 0.2, newT));
+      LS.frameTime = newT;
+      const badge = $("#ls_frame_time_badge"); if (badge) badge.textContent = `${LS.frameTime.toFixed(1)}s`;
+      const img = $("#ls_source_img");
+      if (img) img.src = `/api/jobs/${LS.jid}/clips/${LS.cid}/source-frame?t=${LS.frameTime}&v=${Date.now()}`;
+      return;
+    }
+    if (a === "ls_game_preset") {
+      const v = d.val;
+      const W = LS.videoW || 1280, H = LS.videoH || 720;
+      if (v === "full") LS.gameplay = [0, 0, W, H];
+      if (v === "center") LS.gameplay = [Math.round(W * 0.22), 0, Math.round(W * 0.56), H];
+      if (v === "right") LS.gameplay = [Math.round(W * 0.28), 0, Math.round(W * 0.72), H];
+      if (v === "left") LS.gameplay = [0, 0, Math.round(W * 0.72), H];
+      updateLSBoxes();
+      updateLSPreview();
+      return;
+    }
+    if (a === "ls_set_split") {
+      LS.split_ratio = Number(d.val);
+      const sl = $("#ls_split_slider"); if (sl) sl.value = LS.split_ratio;
+      const lbl = $("#ls_split_val_label"); if (lbl) lbl.textContent = `${LS.split_ratio}% Cam / ${100 - LS.split_ratio}% Game`;
+      updateLSPreview();
+      return;
+    }
+    if (a === "ls_apply") {
+      const cl = {
+        cam_pos: LS.cam_pos,
+        split_ratio: LS.split_ratio,
+        cam_fit: LS.cam_fit,
+        gameplay_box: LS.gameplay
+      };
+      if (LS.mode === "clip") {
+        const setVal = (k, v) => { const el = $(`#clipdlg [data-f="${k}"]`); if (el) el.value = v; };
+        setVal("layout", "custom");
+        setVal("facecam_x", LS.facecam[0]);
+        setVal("facecam_y", LS.facecam[1]);
+        setVal("facecam_w", LS.facecam[2]);
+        setVal("facecam_h", LS.facecam[3]);
+        setVal("handle", LS.handle);
+        setVal("handle_pos", LS.handle_pos);
+        const hid = $("#d_custom_layout");
+        if (hid) hid.value = JSON.stringify(cl);
+
+        $("#layoutdlg").close();
+
+        const body = {
+          layout: "custom",
+          facecam: LS.facecam,
+          custom_layout: cl,
+          handle: LS.handle,
+          handle_pos: LS.handle_pos
+        };
+        $$("#clipdlg [data-f]").forEach(i => {
+          if (!body.hasOwnProperty(i.dataset.f)) {
+            body[i.dataset.f] = i.type === "checkbox" ? i.checked : i.type === "number" ? Number(i.value) : i.value;
+          }
+        });
+        await send(`/api/jobs/${LS.jid}/clips/${LS.cid}/render`, body);
+        toast("Custom layout applied! Re-making the clip…", "ok");
+        return tick();
+      } else {
+        const body = {
+          layout: "custom",
+          facecam: LS.facecam,
+          custom_layout: cl,
+          handle: LS.handle,
+          handle_pos: LS.handle_pos
+        };
+        await send(`/api/creators/${LS.creatorId}`, body, "PUT");
+        toast("Creator custom layout & framing saved!", "ok");
+        $("#layoutdlg").close();
+        await tick();
+        return drawCreatorForm();
+      }
+    }
+    if (a === "ls_save_creator_default") {
+      if (!LS.creatorId) return toast("No creator associated with this job.", "bad");
+      const cl = {
+        cam_pos: LS.cam_pos,
+        split_ratio: LS.split_ratio,
+        cam_fit: LS.cam_fit,
+        gameplay_box: LS.gameplay
+      };
+      const body = {
+        layout: "custom",
+        facecam: LS.facecam,
+        custom_layout: cl,
+        handle: LS.handle,
+        handle_pos: LS.handle_pos
+      };
+      await send(`/api/creators/${LS.creatorId}`, body, "PUT");
+      toast("Saved layout as default for this creator!", "ok");
+      return;
+    }
+    if (a === "cam_preset") {
+      const v = d.val;
+      const setF = (k, val) => { const el = $(`#clipdlg [data-f="${k}"]`); if (el) el.value = val; };
+      if (v === "bl") { setF("facecam_x", 12); setF("facecam_y", 388); setF("facecam_w", 307); setF("facecam_h", 316); }
+      if (v === "br") { setF("facecam_x", 960); setF("facecam_y", 388); setF("facecam_w", 307); setF("facecam_h", 316); }
+      if (v === "tl") { setF("facecam_x", 12); setF("facecam_y", 20); setF("facecam_w", 307); setF("facecam_h", 316); }
+      if (v === "tr") { setF("facecam_x", 960); setF("facecam_y", 20); setF("facecam_w", 307); setF("facecam_h", 316); }
+      return toast("Facecam preset applied.", "ok");
+    }
+    if (a === "save_creator_cam") {
+      const cid = d.c;
+      const fx = Number($(`#clipdlg [data-f="facecam_x"]`)?.value || 0);
+      const fy = Number($(`#clipdlg [data-f="facecam_y"]`)?.value || 0);
+      const fw = Number($(`#clipdlg [data-f="facecam_w"]`)?.value || 0);
+      const fh = Number($(`#clipdlg [data-f="facecam_h"]`)?.value || 0);
+      const lay = $(`#clipdlg [data-f="layout"]`)?.value || "splitscreen";
+      const hnd = $(`#clipdlg [data-f="handle"]`)?.value || "";
+      const hpos = $(`#clipdlg [data-f="handle_pos"]`)?.value || "top_right";
+      const body = {layout: lay, handle: hnd, handle_pos: hpos};
+      if (fw > 8 && fh > 8) body.facecam = [fx, fy, fw, fh];
+      await send(`/api/creators/${cid}`, body, "PUT");
+      toast("Layout and facecam saved as default for this creator!", "ok");
+      return tick();
+    }
+    if (a === "c_cam_preset") {
+      const v = d.val;
+      const setK = (k, val) => { const el = $(`#cform [data-k="${k}"]`); if (el) { el.value = val; dirty(true); } };
+      if (v === "bl") { setK("facecam_x", 12); setK("facecam_y", 388); setK("facecam_w", 307); setK("facecam_h", 316); }
+      if (v === "br") { setK("facecam_x", 960); setK("facecam_y", 388); setK("facecam_w", 307); setK("facecam_h", 316); }
+      if (v === "tl") { setK("facecam_x", 12); setK("facecam_y", 20); setK("facecam_w", 307); setK("facecam_h", 316); }
+      if (v === "tr") { setK("facecam_x", 960); setK("facecam_y", 20); setK("facecam_w", 307); setK("facecam_h", 316); }
+      if (v === "clear") { setK("facecam_x", 0); setK("facecam_y", 0); setK("facecam_w", 0); setK("facecam_h", 0); }
+      return toast("Facecam preset applied.", "ok");
     }
     if (a === "remake") {
       const body = {}; $$("#clipdlg [data-f]").forEach(i => {

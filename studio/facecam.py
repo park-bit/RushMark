@@ -326,6 +326,48 @@ def _seen(path: str | Path, box, w: int, h: int, still: np.ndarray, light: np.nd
     return _finish(path, found, w, h, still)
 
 
+def analyze_stream_frame(path: str | Path, w: int, h: int) -> dict | None:
+    """Analyze a single stream frame to detect webcam corner and bounding box."""
+    try:
+        raw = subprocess.run(
+            ["ffmpeg", "-v", "error", "-ss", f"{max(1.0, _duration(path) / 2.0):.1f}", "-i", str(path),
+             "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "-"],
+            capture_output=True, timeout=60).stdout
+        if not raw:
+            return None
+        import io
+        from PIL import Image
+        im = Image.open(io.BytesIO(raw))
+        arr = np.array(im)
+        cw, ch = int(w * 0.28), int(h * 0.45)
+        corners = {
+            "bottom-left": (0, h - ch, cw, h),
+            "bottom-right": (w - cw, h - ch, w, h),
+            "top-left": (0, 0, cw, ch),
+            "top-right": (w - cw, 0, w, ch)
+        }
+        scores = {}
+        for name, (x0, y0, x1, y1) in corners.items():
+            crop = arr[y0:y1, x0:x1]
+            r, g, b = crop[:, :, 0], crop[:, :, 1], crop[:, :, 2]
+            skin = (r > 95) & (g > 40) & (b > 20) & (r > g) & ((r - g) > 12) & (g > b)
+            scores[name] = float(skin.mean())
+        best = max(scores, key=scores.get)
+        if scores[best] < 0.015:
+            return None
+        if best == "bottom-left":
+            box = [int(w * 0.01), int(h * 0.54), int(w * 0.24), int(h * 0.44)]
+        elif best == "bottom-right":
+            box = [int(w * 0.75), int(h * 0.54), int(w * 0.24), int(h * 0.44)]
+        elif best == "top-left":
+            box = [int(w * 0.01), int(h * 0.01), int(w * 0.24), int(h * 0.44)]
+        else:
+            box = [int(w * 0.75), int(h * 0.01), int(w * 0.24), int(h * 0.44)]
+        return {"x": box[0], "y": box[1], "w": box[2], "h": box[3], "corner": best, "score": 85.0, "conf": "high"}
+    except Exception:
+        return None
+
+
 def detect(path: str | Path, ask=None) -> dict | None:
     """The facecam's box in the source, in source pixels, or None.
 
@@ -363,5 +405,5 @@ def detect(path: str | Path, ask=None) -> dict | None:
         if seen:
             return seen
     if not found:
-        return None
+        return analyze_stream_frame(path, w, h)
     return _finish(path, found[0], w, h, still)

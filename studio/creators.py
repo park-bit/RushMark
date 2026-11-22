@@ -21,7 +21,8 @@ DEFAULTS = {"name": "", "channel": "", "style": "bounce", "layout": "blur", "cap
             "trigger_words": "clip that, clip it",
             "autopost": False, "accounts": [], "post_min_score": 75, "post_gap_min": 45, "daily_cap": 6,
             "privacy": "public", "post_footer": "", "rate_per_1k": 0.0, "channels": {},
-            "lang": "en"}    # the language this creator speaks: picks the speech model, for live recordings too
+            "lang": "en",
+            "handle": "", "handle_pos": "top_right", "facecam": None, "custom_layout": {}}    # the language this creator speaks: picks the speech model, for live recordings too
 PLATFORMS = ("youtube", "twitch", "kick")
 
 
@@ -103,9 +104,35 @@ def _clean(data: dict) -> dict:
         elif k == "lang":
             from . import fetch_model
             v = v if fetch_model.known(v) else "en"
+        elif k == "handle":
+            v = str(v).strip()[:60]
+        elif k == "handle_pos":
+            v = str(v).strip()[:30]
+        elif k == "facecam":
+            if isinstance(v, (list, tuple)) and len(v) == 4:
+                try:
+                    v = [int(float(x)) for x in v]
+                except (ValueError, TypeError):
+                    v = None
+            elif isinstance(v, str) and v in ("bottom-left", "bottom-right", "top-left", "top-right"):
+                pass
+            else:
+                v = None
+        elif k == "custom_layout":
+            v = v if isinstance(v, dict) else {}
         else:
             v = str(v).strip()[:300]
         out[k] = v
+    if any(k in data for k in ("facecam_x", "facecam_y", "facecam_w", "facecam_h")):
+        try:
+            fw = int(float(data.get("facecam_w", 0)))
+            fh = int(float(data.get("facecam_h", 0)))
+            if fw > 8 and fh > 8:
+                fx = int(float(data.get("facecam_x", 0)))
+                fy = int(float(data.get("facecam_y", 0)))
+                out["facecam"] = [fx, fy, fw, fh]
+        except (ValueError, TypeError):
+            pass
     return out
 
 
