@@ -23,7 +23,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 
 from . import admin as admins
 from . import account, load
-from . import (accounts, ai, alerts, auth, brain, config, creators, ctx, db, jobs, live, media, posting,
+from . import (accounts, ai, alerts, auth, brain, config, creators, ctx, db, hashtags, jobs, live, media, posting,
                profiles, render, safe, transcribe, usage)
 
 from . import tools as _tools  # noqa: E402
@@ -612,7 +612,7 @@ def status(request: Request):
     return {"user": auth.public(me_), "update": updates.latest() if me_.is_admin else None, "accounts": config.ACCOUNTS, "disk_full": load.disk_full(), "no_ffmpeg": bool(_tools.missing()), "links": {"repo": config.REPO_URL, "follow": config.FOLLOW_URL}, "ai": usage.brief(), "unread": notices.unread(),
             "tour": not accounts.settings()["tour_done"],
             "youtube": accounts.youtube_ready(), "connect": {p: accounts.can_connect(p) for p in accounts.PLATFORM_NAMES}, "max_upload_mb": config.MAX_UPLOAD_MB, "upload_part_mb": config.UPLOAD_PART_MB, "max_batch": config.MAX_ACTIVE_JOBS_PER_USER,
-            "styles": {k: v["label"] for k, v in render.STYLES.items()}, "layouts": render.LAYOUTS, "speech": _speech_brief()}
+            "styles": {k: v["label"] for k, v in render.STYLES.items()}, "hook_styles": {k: v["label"] for k, v in render.HOOK_STYLES.items()}, "layouts": render.LAYOUTS, "speech": _speech_brief()}
 
 
 def _speech_brief() -> dict:
@@ -1016,7 +1016,7 @@ def _clip_or_404(jid: str, cid: str):
 
 @app.put("/api/jobs/{jid}/clips/{cid}/text")
 def clip_text(jid: str, cid: str, body: dict = Body(...)):
-    """Save a clip's title, description and hashtags. The video is not made again."""
+    """Save a clip's title, description, hashtags, big text and caption preferences without making the clip again."""
     job, clip = _clip_or_404(jid, cid)
     _throttle("cliptext:" + ctx.uid(), 120, 600)
     try:
@@ -1039,6 +1039,70 @@ def clip_write(jid: str, cid: str):
         raise HTTPException(400, str(e))
     except RuntimeError as e:
         raise HTTPException(503, str(e))
+
+
+@app.post("/api/jobs/{jid}/clips/{cid}/thumbnail")
+def clip_thumbnail(jid: str, cid: str, body: dict = Body(...)):
+    """Set custom thumbnail for a clip, either from timestamp in seconds or base64 image."""
+    job, clip = _clip_or_404(jid, cid)
+    _throttle("clipthumb:" + ctx.uid(), 60, 600)
+    t = body.get("time")
+    img = body.get("image")
+    if t is None and not img:
+        raise HTTPException(400, "Provide 'time' (seconds) or 'image' (base64).")
+    try:
+        time_sec = float(t) if t is not None else None
+    except (ValueError, TypeError):
+        raise HTTPException(400, "Invalid timestamp")
+    try:
+        jobs.set_clip_thumbnail(job, clip, time_sec=time_sec, image_b64=img)
+    except Exception as e:
+        raise HTTPException(400, str(e))
+    return jobs.public(job)
+
+
+@app.post("/api/jobs/{jid}/thumbnail")
+def job_thumbnail(jid: str, body: dict = Body(...)):
+    """Set custom thumbnail for a video (job), either from timestamp in seconds or base64 image."""
+    job = _job_or_404(jid)
+    _throttle("jobthumb:" + ctx.uid(), 60, 600)
+    t = body.get("time")
+    img = body.get("image")
+    if t is None and not img:
+        raise HTTPException(400, "Provide 'time' (seconds) or 'image' (base64).")
+    try:
+        time_sec = float(t) if t is not None else None
+    except (ValueError, TypeError):
+        raise HTTPException(400, "Invalid timestamp")
+    try:
+        jobs.set_job_thumbnail(job, time_sec=time_sec, image_b64=img)
+    except Exception as e:
+        raise HTTPException(400, str(e))
+    return jobs.public(job)
+
+
+@app.post("/api/jobs/{jid}/clips/{cid}/hashtags")
+def clip_best_hashtags(jid: str, cid: str):
+    """Fetch up to 30 game tags and 30 streamer tags from best-hashtags.com for this clip."""
+    job, clip = _clip_or_404(jid, cid)
+    _throttle("clipht:" + ctx.uid(), 60, 600)
+    game = job.get("game")
+    streamer = job.get("creator") or job.get("uploader")
+    if job.get("creator"):
+        c = creators.get(job["creator"])
+        if c and c.get("name"):
+            streamer = c["name"]
+    tags = hashtags.fetch_combo_tags(game=game, streamer=streamer, per_category=30)
+    if not tags:
+        words_file = Path(job["dir"]) / "words.json"
+        words = json.loads(words_file.read_text(encoding="utf-8")) if words_file.is_file() else []
+        text = " ".join(w.get("w", "") for w in words if clip["start"] <= w.get("s", -1) <= clip["end"])
+        tags = hashtags.make(text, job.get("title") or "", job.get("uploader") or "", game,
+                             clip.get("category", "other"), clip.get("hashtags") or [], limit=30)
+    desc = hashtags._TAG_IN_TEXT.sub("", str(clip.get("description") or "")).strip()
+    line = " ".join("#" + t for t in tags)
+    full_desc = ((desc + "\n\n" + line).strip() if desc else line)[:2000]
+    return {"hashtags": tags, "description": full_desc}
 
 
 @app.delete("/api/jobs/{jid}")
@@ -1629,16 +1693,16 @@ def add_posts(body: dict = Body(...)):
     clip = next((c for c in job["clips"] if c["id"] == body.get("clip")), None) if job else None
     if not clip or clip.get("status") != "done":
         raise HTTPException(404, "That clip is not ready")
-    made = posting.enqueue(job, clip, [str(a) for a in body.get("accounts", [])][:20], now=bool(body.get("now")))
+    made = posting.enqueue(job, clip, [str(a) for a in body.get("accounts", [])][:20], now=bool(body.get("now")), allow_repeat=True)
     if not made:
-        raise HTTPException(400, "Nothing was queued. Pick at least one account this clip has not already gone to.")
+        raise HTTPException(400, "That clip is already scheduled or currently being posted to the selected account.")
     return {"queued": len(made)}
 
 
 @app.post("/api/posts/{pid}/{action}")
 def post_action(pid: str, action: str):
     try:
-        {"cancel": posting.cancel, "retry": posting.retry}[action](pid)
+        {"cancel": posting.cancel, "retry": posting.retry, "now": posting.post_now}[action](pid)
     except KeyError:
         raise HTTPException(404)
     except ValueError as e:

@@ -11,6 +11,7 @@ Three to five tags, picked from what is really there:
 A description the person wrote themselves is never touched: see apply().
 """
 import re
+import urllib.request
 
 from . import games
 
@@ -102,13 +103,81 @@ def make(text="", title="", uploader="", game=None, category="other", ai_tags=()
     return out
 
 
-def apply(clip: dict, words: list, title="", uploader="", game=None) -> dict:
+_CACHE = {}
+
+
+def fetch_best_hashtags(term: str, limit: int = 30) -> list:
+    """Fetches trending hashtags from best-hashtags.com for a given search term."""
+    if not term:
+        return []
+    clean = re.sub(r"[^\w]", "", term.lower().strip())
+    if not clean or len(clean) < 2:
+        return []
+    if clean in _CACHE:
+        return _CACHE[clean]
+    url = f"https://best-hashtags.com/hashtag/{clean}/"
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+    )
+    tags = []
+    try:
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            html = resp.read().decode("utf-8", errors="ignore")
+            m = re.search(r'<meta name="description" content="([^"]+)"', html)
+            if m:
+                content = m.group(1)
+                colon = content.split(":", 1)[-1] if ":" in content else content
+                tags = [t.lower() for t in re.findall(r'#([a-zA-Z0-9_]{2,35})', colon)]
+            if len(tags) < limit:
+                panels = re.findall(r'<p[0-9][^>]*class=[\'"][^\'"]*tag-panel[^\'"]*[\'"][^>]*>(.*?)</p[0-9]>', html, re.DOTALL)
+                for p in panels:
+                    for t in re.findall(r'#([a-zA-Z0-9_]{2,35})', p):
+                        tl = t.lower()
+                        if tl not in tags:
+                            tags.append(tl)
+            if len(tags) < limit:
+                for t in re.findall(r'#([a-zA-Z0-9_]{2,35})', html):
+                    tl = t.lower()
+                    if tl not in tags:
+                        tags.append(tl)
+    except Exception:
+        pass
+    seen = set()
+    result = []
+    for t in tags:
+        if t not in seen:
+            seen.add(t)
+            result.append(t)
+    _CACHE[clean] = result[:limit]
+    return _CACHE[clean]
+
+
+def fetch_combo_tags(game: str = None, streamer: str = None, per_category: int = 30) -> list:
+    """Searches best-hashtags.com for the game and streamer name one after another,
+    returning up to 30 game tags followed by up to 30 streamer tags without duplicates."""
+    game_tags = fetch_best_hashtags(game, limit=per_category) if game else []
+    streamer_tags = fetch_best_hashtags(streamer, limit=per_category) if streamer else []
+    seen = set()
+    merged = []
+    for t in game_tags + streamer_tags:
+        if t not in seen:
+            seen.add(t)
+            merged.append(t)
+    return merged
+
+
+def apply(clip: dict, words: list, title="", uploader="", game=None, use_combo: bool = False) -> dict:
     """Give a clip its tags and put them at the end of its description, so the description is complete as it is.
     A description the person wrote themselves (`fixed_description`) is left exactly as written."""
     if clip.get("fixed_description"):
         return clip
-    text = " ".join(w.get("w", "") for w in words if clip["start"] <= w.get("s", -1) <= clip["end"])
-    tags = make(text, title, uploader, game, clip.get("category", "other"), clip.get("hashtags") or [])
+    if use_combo:
+        combo = fetch_combo_tags(game, uploader, per_category=30)
+        tags = combo if combo else make(" ".join(w.get("w", "") for w in words if clip["start"] <= w.get("s", -1) <= clip["end"]), title, uploader, game, clip.get("category", "other"), clip.get("hashtags") or [])
+    else:
+        text = " ".join(w.get("w", "") for w in words if clip["start"] <= w.get("s", -1) <= clip["end"])
+        tags = make(text, title, uploader, game, clip.get("category", "other"), clip.get("hashtags") or [])
     desc = _TAG_IN_TEXT.sub("", str(clip.get("description") or "")).strip()
     line = " ".join("#" + t for t in tags)
     clip.update(hashtags=tags, hashtags_in_description=True,

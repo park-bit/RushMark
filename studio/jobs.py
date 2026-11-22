@@ -108,7 +108,7 @@ _by_user: dict = {}                       # user -> {job id: job}: listing one p
 _lock = threading.RLock()
 on_clip_ready: list = []   # callbacks (job, clip), run once when a clip first finishes
 
-DEFAULTS = {"max_clips": 6, "min_len": 15, "max_len": 60, "style": "bounce", "layout": "blur", "quality": 720,
+DEFAULTS = {"max_clips": 6, "min_len": 15, "max_len": 60, "style": "bounce", "hook_style": "white", "layout": "blur", "quality": 720,
             "range_start": None, "range_end": None, "captions": True, "hook_text": "", "description_text": "",
             "lang": "en"}   # lang: the language spoken
 
@@ -135,6 +135,8 @@ def clean_options(options) -> dict:
             v = max(lo, min(hi, int(float(v))))
         elif k == "style":
             v = v if v in render.STYLES else DEFAULTS["style"]
+        elif k == "hook_style":
+            v = v if v in render.HOOK_STYLES else DEFAULTS["hook_style"]
         elif k == "layout":
             v = v if v in render.LAYOUTS else DEFAULTS["layout"]
         elif k == "lang":
@@ -387,7 +389,7 @@ def request_render(jid, cid, changes: dict):
         raise ValueError("Those times aren't valid.")
     if not 3 <= new["end"] - new["start"] <= 180:
         raise ValueError("A clip can be 3 to 180 seconds long.")
-    for k in ("hook", "title", "description", "style", "layout", "sfx", "meme", "music"):
+    for k in ("hook", "hook_style", "title", "description", "style", "layout", "sfx", "meme", "music"):
         if k in changes:
             new[k] = str(changes[k])[:{"hook": 60, "title": 100, "description": 2000}.get(k, 30)]
     if "flash" in changes:
@@ -400,29 +402,56 @@ def request_render(jid, cid, changes: dict):
         new["facecam"] = job["facecam"]
     if new.get("style") not in render.STYLES:
         new["style"] = DEFAULTS["style"]
+    if new.get("hook_style") not in render.HOOK_STYLES:
+        new["hook_style"] = DEFAULTS["hook_style"]
     if new.get("layout") not in render.LAYOUTS:
         new["layout"] = DEFAULTS["layout"]
+    timing_changed = (
+        ("start" in changes and abs(new["start"] - clip["start"]) > 0.05)
+        or ("end" in changes and abs(new["end"] - clip["end"]) > 0.05)
+        or ("layout" in changes and new.get("layout") != clip.get("layout"))
+        or ("facecam" in changes and new.get("facecam") != clip.get("facecam"))
+    )
+    base_mp4 = Path(job["dir"]) / "clips" / f"{cid}.base.mp4"
+    if not timing_changed and base_mp4.is_file():
+        save_post_text(job, clip, changes)
+        return
     clip.update(new, status="queued")
     save(job)
     _q.put(("clip", jid, cid))
 
 
 def clean_hashtags(v) -> list:
-    """Hashtags typed by a person ("#funny gaming") or sent by the page as a list: plain words, at most 8."""
+    """Hashtags typed by a person ("#funny gaming") or sent by the page as a list: plain words, at most 60."""
     if isinstance(v, str):
         v = v.split()
     if not isinstance(v, list):
         raise ValueError("Hashtags must be words separated by spaces.")
-    tags = [re.sub(r"\W", "", str(h))[:30] for h in v[:50] if isinstance(h, (str, int))]
-    return [t for t in tags if t][:8]
+    tags = [re.sub(r"\W", "", str(h))[:30] for h in v[:100] if isinstance(h, (str, int))]
+    return [t for t in tags if t][:60]
 
 
 def save_post_text(job, clip, changes: dict):
-    """Change a clip's title, description and hashtags without making the clip again. Posting reads them
-    from the clip when it uploads, so the next post (or one still waiting in the queue) uses the new text."""
+    """Change a clip's title, description, hashtags, big text and caption preferences without making the clip again.
+    Posting reads them from the clip when it uploads, so the next post (or one still waiting in the queue) uses the new text."""
     text = {k: str(changes[k] or "")[:{"title": 100, "description": 2000}[k]] for k in ("title", "description") if k in changes}
     if "hashtags" in changes:
         text["hashtags"] = clean_hashtags(changes["hashtags"])
+    if "hook" in changes:
+        text["hook"] = creators.clean_hook(changes["hook"])
+    if "hook_style" in changes:
+        hs = str(changes["hook_style"])
+        if hs in render.HOOK_STYLES:
+            text["hook_style"] = hs
+    if "captions" in changes:
+        cap = changes["captions"]
+        if not isinstance(cap, bool):
+            raise ValueError("captions must be true or false")
+        text["captions"] = cap
+    if "style" in changes:
+        st = str(changes["style"])
+        if st in render.STYLES:
+            text["style"] = st
     if clip.get("hashtags_in_description") and not clip.get("fixed_description") and text:
         # This clip's description ends with its hashtags, and posting does not add them again. So the
         # description is put back together from the Hashtags box: the words, then one line of tags.
@@ -438,6 +467,128 @@ def save_post_text(job, clip, changes: dict):
             side.write_text(json.dumps({**json.loads(side.read_text(encoding="utf-8")), **text}, indent=1), encoding="utf-8")
     except (OSError, ValueError):
         pass
+    try:
+        base_mp4 = Path(job["dir"]) / "clips" / f"{clip['id']}.base.mp4"
+        if base_mp4.is_file() and any(k in text for k in ("hook", "hook_style", "captions", "style")):
+            side_ass = Path(job["dir"]) / "clips" / f"{clip['id']}.ass"
+            words_file = Path(job["dir"]) / "words.json"
+            words = json.loads(words_file.read_text(encoding="utf-8")) if words_file.is_file() else []
+            off = clip.get("src_offset", 0.0)
+            hook_str = roman.to_roman(text.get("hook", clip.get("hook") or ""))
+            local = dict(clip, **text)
+            local["start"] = clip["start"] - off
+            local["end"] = clip["end"] - off
+            local["hook"] = hook_str
+            near = _caption_words(job, clip, words, off) if text.get("captions", clip.get("captions", True)) else []
+            layout, fg_h, hook_y, cap_y = render.geometry(job.get("width", 1920), job.get("height", 1080), clip.get("layout", "blur"))
+            face = clip.get("facecam")
+            if layout == "gameplay" and not (face and len(face) == 4):
+                layout = "crop"
+            hook_y = render._hook_y(layout, hook_y, face)
+            ass = render.build_ass(near, local["start"], local["end"], local.get("hook", ""), local.get("style", "bounce"),
+                                   local.get("highlight_words", []), hook_y, cap_y, hook_style=local.get("hook_style", "white"))
+            side_ass.write_text(ass, encoding="utf-8")
+
+            hook_val = local.get("hook", "")
+            hook_style_val = local.get("hook_style", "white")
+            hook_img_path = Path(job["dir"]) / "clips" / f"{clip['id']}.hook.png"
+            if render.has_emoji(hook_val):
+                hook_im = render.render_hook_image(hook_val, hook_style=hook_style_val, y=hook_y)
+                hook_im.save(hook_img_path, format="PNG")
+                hook_img = hook_img_path
+            else:
+                if hook_img_path.is_file():
+                    hook_img_path.unlink(missing_ok=True)
+                hook_img = None
+
+            out_mp4 = Path(job["dir"]) / "clips" / f"{clip['id']}.mp4"
+            out_jpg = Path(job["dir"]) / "clips" / f"{clip['id']}.jpg"
+            meta = {"title": clip.get("title") or "", "description": clip.get("description") or "", "comment": clip.get("description") or ""}
+            render.burn_subtitles(base_mp4, side_ass, out_mp4, out_jpg, meta=meta, hook_img=hook_img)
+            with _lock:
+                clip["version"] = clip.get("version", 1) + 1
+            save(job)
+            ctx.bump()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise RuntimeError(f"Could not update video subtitles: {e}") from e
+
+
+def set_clip_thumbnail(job: dict, clip: dict, *, time_sec: float = None, image_b64: str = None):
+    """Sets a clip's thumbnail either from a video timestamp (seconds) or uploaded base64 image data."""
+    cover_name = clip.get("cover") or f"{clip['id']}.jpg"
+    cover_path = Path(job["dir"]) / "clips" / cover_name
+    cover_path.parent.mkdir(parents=True, exist_ok=True)
+    if image_b64:
+        import base64
+        import io
+        from PIL import Image
+        if "," in image_b64:
+            image_b64 = image_b64.split(",", 1)[1]
+        raw = base64.b64decode(image_b64)
+        im = Image.open(io.BytesIO(raw)).convert("RGB")
+        im.save(cover_path, format="JPEG", quality=92)
+    elif time_sec is not None:
+        time_sec = max(0.0, float(time_sec))
+        cfile = Path(job["dir"]) / "clips" / (clip.get("file") or f"{clip['id']}.mp4")
+        if not cfile.is_file():
+            raise ValueError("Clip video file is not ready yet.")
+        cmd = ["ffmpeg", "-y", "-v", "error", "-ss", f"{time_sec:.3f}", "-i", str(cfile),
+               "-frames:v", "1", "-q:v", "3", str(cover_path)]
+        render.run(cmd)
+        if not cover_path.is_file():
+            raise RuntimeError("Could not extract frame from clip video.")
+    else:
+        raise ValueError("Either time or image must be provided.")
+    with _lock:
+        clip["version"] = (clip.get("version") or 1) + 1
+        clip["cover"] = cover_name
+    save(job)
+    ctx.bump()
+
+
+def set_job_thumbnail(job: dict, *, time_sec: float = None, image_b64: str = None):
+    """Sets a job's thumbnail either from a video timestamp (seconds) or uploaded base64 image data."""
+    thumb_path = Path(job["dir"]) / "clips" / "thumb.jpg"
+    thumb_path.parent.mkdir(parents=True, exist_ok=True)
+    if image_b64:
+        import base64
+        import io
+        from PIL import Image
+        if "," in image_b64:
+            image_b64 = image_b64.split(",", 1)[1]
+        raw = base64.b64decode(image_b64)
+        im = Image.open(io.BytesIO(raw)).convert("RGB")
+        im.save(thumb_path, format="JPEG", quality=92)
+    elif time_sec is not None:
+        time_sec = max(0.0, float(time_sec))
+        vpath = None
+        for cand in [job.get("source_path"), Path(job["dir"]) / "source.mp4",
+                     job.get("source", {}).get("path") if isinstance(job.get("source"), dict) else None]:
+            if cand and Path(cand).is_file():
+                vpath = Path(cand)
+                break
+        if not vpath:
+            for c in job.get("clips", []):
+                cp = Path(job["dir"]) / "clips" / (c.get("file") or f"{c['id']}.mp4")
+                if cp.is_file():
+                    vpath = cp
+                    break
+        if not vpath:
+            raise ValueError("Video source file not found to extract frame.")
+        cmd = ["ffmpeg", "-y", "-v", "error", "-ss", f"{time_sec:.3f}", "-i", str(vpath),
+               "-frames:v", "1", "-vf", "scale=480:-2", "-q:v", "4", str(thumb_path)]
+        render.run(cmd)
+        if not thumb_path.is_file():
+            raise RuntimeError("Could not extract frame from video.")
+    else:
+        raise ValueError("Either time or image must be provided.")
+    with _lock:
+        job["thumb"] = True
+        job["thumb_v"] = (job.get("thumb_v") or 1) + 1
+    save(job)
+    ctx.bump()
 
 
 def spoken_in(job, clip) -> str:
@@ -854,7 +1005,7 @@ def _run_job(job):
             job["done_blocks"] = bi + 1
             save(job)
             continue
-        quota = max(1, math.ceil(left / (len(blocks) - bi)))
+        quota = min(left, max(2, math.ceil(left / max(1, len(blocks) - bi)) + 2))
         s0 = int((a - lo) / 16000)
         found, ai = brain.find_clips(bw, db[s0: s0 + int((b - a) / 16000) + 1], (b - a) / 16000, job["title"],
                                      job["uploader"], quota, int(o["min_len"]), int(o["max_len"]), notes.append, game=game)
@@ -876,7 +1027,7 @@ def _run_job(job):
             found = keep
         for c in found:
             c.update(id=f"clip{len(job['clips']) + 1:02d}", start=round(c["start"] + shift, 2),
-                     end=round(c["end"] + shift, 2), style=o["style"], layout=o["layout"],
+                     end=round(c["end"] + shift, 2), style=o["style"], hook_style=o.get("hook_style", "white"), layout=o["layout"],
                      captions=o.get("captions", True), status="queued", version=0)
             if o.get("hook_text"):        # the person's own big text, on every clip, in place of the AI's
                 c["hook"] = o["hook_text"]

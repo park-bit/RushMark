@@ -19,10 +19,129 @@ STYLES = {
     "clean": {"label": "Clean", "font": "Poppins ExtraBold", "size": 100, "base": "FFFFFF", "active": "6BD7FF",
               "strong": "FFFFFF", "outline": 5, "pop": 106, "upper": False, "per": 4},
 }
-HOOK = {"font": "Poppins ExtraBold", "size": 96, "ink": "14100E", "box": "FFFFFF", "pad_x": 36, "pad_y": 22, "radius": 26,
-        "max_w": 900}
+HOOK_STYLES = {
+    "white": {"label": "White Box", "font": "Poppins ExtraBold", "size": 96, "ink": "14100E", "box": "FFFFFF", "pad_x": 36, "pad_y": 22, "radius": 26, "max_w": 900},
+    "yellow": {"label": "Yellow Box", "font": "Poppins ExtraBold", "size": 96, "ink": "000000", "box": "00E5FF", "pad_x": 36, "pad_y": 22, "radius": 26, "max_w": 900},
+    "black": {"label": "Dark Box", "font": "Poppins ExtraBold", "size": 96, "ink": "FFFFFF", "box": "14100E", "pad_x": 36, "pad_y": 22, "radius": 26, "max_w": 900},
+    "red": {"label": "Red Box", "font": "Poppins ExtraBold", "size": 96, "ink": "FFFFFF", "box": "2020E6", "pad_x": 36, "pad_y": 22, "radius": 26, "max_w": 900},
+    "outline": {"label": "Outline (No box)", "font": "Anton", "size": 110, "ink": "FFFFFF", "box": None, "outline": 8, "pad_x": 36, "pad_y": 22, "radius": 0, "max_w": 940},
+}
+HOOK = HOOK_STYLES["white"]
 FONT_FILES = {"Poppins ExtraBold": "Poppins-ExtraBold.ttf", "Anton": "Anton-Regular.ttf", "Archivo Black": "ArchivoBlack-Regular.ttf"}
 CAP_MAX_W = 960   # captions never run wider than this, whatever is said
+
+EMOJI_PATTERN = re.compile(
+    r"([\U00010000-\U0010ffff\u2600-\u26ff\u2700-\u27bf\ufe00-\ufe0f\u200d]+)"
+)
+
+
+def has_emoji(text: str) -> bool:
+    return bool(EMOJI_PATTERN.search(str(text or "")))
+
+
+def _bgr_to_rgb(bgr_hex: str) -> tuple:
+    if not bgr_hex or len(bgr_hex) != 6:
+        return (255, 255, 255)
+    b, g, r = int(bgr_hex[0:2], 16), int(bgr_hex[2:4], 16), int(bgr_hex[4:6], 16)
+    return (r, g, b)
+
+
+def render_hook_image(hook: str, hook_style: str = "white", y: int = 300, max_w: int = 900):
+    """Renders heading text and background box with full color emojis to a PIL Image."""
+    from PIL import Image, ImageDraw, ImageFont
+    cfg = HOOK_STYLES.get(hook_style, HOOK)
+    font_file = FONT_FILES.get(cfg["font"], FONT_FILES["Poppins ExtraBold"])
+    font_text_path = config.FONTS_DIR / font_file
+    if not font_text_path.exists():
+        font_text_path = Path(__file__).resolve().parent / "fonts" / font_file
+
+    font_emj_paths = [
+        Path("C:/Windows/Fonts/seguiemj.ttf"),
+        Path("/System/Library/Fonts/Apple Color Emoji.ttc"),
+        Path("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"),
+    ]
+    font_emj_path = next((p for p in font_emj_paths if p.exists()), None)
+
+    f_metric = _Font.get(cfg["font"])
+    base_em = max(36, int(round(f_metric.em(cfg["size"]))))
+    size = base_em
+    text_font = ImageFont.truetype(str(font_text_path), size)
+    emj_font = ImageFont.truetype(str(font_emj_path), size) if font_emj_path else text_font
+
+    words = hook.strip().split()
+    if not words:
+        return Image.new("RGBA", (W, H), (0, 0, 0, 0))
+
+    def measure_line(line_str):
+        parts = EMOJI_PATTERN.split(line_str)
+        w = 0.0
+        for p in parts:
+            if not p:
+                continue
+            f = emj_font if EMOJI_PATTERN.match(p) else text_font
+            w += f.getlength(p)
+        return w
+
+    full_line = " ".join(words)
+    if measure_line(full_line) > max_w and len(words) > 1:
+        cut = min(range(1, len(words)), key=lambda i: max(measure_line(" ".join(words[:i])), measure_line(" ".join(words[i:]))))
+        lines = [" ".join(words[:cut]), " ".join(words[cut:])]
+    else:
+        lines = [full_line]
+
+    widest = max(measure_line(l) for l in lines)
+    if widest > max_w:
+        scale = max_w / max(widest, 1.0)
+        size = max(32, int(size * scale))
+        text_font = ImageFont.truetype(str(font_text_path), size)
+        emj_font = ImageFont.truetype(str(font_emj_path), size) if font_emj_path else text_font
+        widest = max(measure_line(l) for l in lines)
+
+    line_h = int(size * 1.25)
+    total_text_h = len(lines) * line_h
+
+    im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(im)
+
+    if cfg.get("box"):
+        bw = widest + 2 * cfg["pad_x"]
+        bh = total_text_h + 2 * cfg["pad_y"]
+        x0 = (W - bw) / 2
+        y0 = y - bh / 2
+        x1 = x0 + bw
+        y1 = y0 + bh
+        r = min(cfg["radius"], bh / 2)
+        box_rgb = _bgr_to_rgb(cfg["box"])
+        draw.rounded_rectangle((x0, y0, x1, y1), radius=r, fill=box_rgb)
+
+    start_y = y - total_text_h / 2
+    ink_rgb = _bgr_to_rgb(cfg["ink"])
+    outline_w = int(round(cfg.get("outline", 0) * size / max(cfg["size"], 1)))
+
+    for i, line in enumerate(lines):
+        line_w = measure_line(line)
+        line_x = (W - line_w) / 2
+        cur_y = start_y + i * line_h
+
+        parts = EMOJI_PATTERN.split(line)
+        cur_x = line_x
+        for p in parts:
+            if not p:
+                continue
+            is_emj = bool(EMOJI_PATTERN.match(p))
+            f = emj_font if is_emj else text_font
+            pw = f.getlength(p)
+            if is_emj:
+                draw.text((cur_x, cur_y), p, font=f, embedded_color=True)
+            else:
+                if outline_w > 0:
+                    draw.text((cur_x, cur_y), p, font=f, fill=ink_rgb,
+                              stroke_width=outline_w, stroke_fill=(0, 0, 0))
+                else:
+                    draw.text((cur_x, cur_y), p, font=f, fill=ink_rgb)
+            cur_x += pw
+
+    return im
 
 
 class _Font:
@@ -135,41 +254,48 @@ def geometry(src_w, src_h, layout):
     return layout, fg_h, max(230, top - 190), min(1640, top + fg_h + 180)
 
 
-def _hook_events(hook, dur, y):
-    """The heading: dark text in a white rounded box that fits it, on one line or two balanced ones."""
-    f, size = _Font.get(HOOK["font"]), HOOK["size"]
+def _hook_events(hook, dur, y, hook_style="white"):
+    """The heading: styled text in a rounded box or outline on one line or two balanced ones."""
+    cfg = HOOK_STYLES.get(hook_style, HOOK)
+    f, size = _Font.get(cfg["font"]), cfg["size"]
     words = hook.split()
     if not words:
         return []
     lines = [" ".join(words)]
-    if f.width(lines[0], size) > HOOK["max_w"] and len(words) > 1:      # two lines, split where they come out most even
+    if f.width(lines[0], size) > cfg["max_w"] and len(words) > 1:      # two lines, split where they come out most even
         cut = min(range(1, len(words)), key=lambda i: max(f.width(" ".join(words[:i]), size), f.width(" ".join(words[i:]), size)))
         lines = [" ".join(words[:cut]), " ".join(words[cut:])]
     widest = max(f.width(l, size) for l in lines)
-    if widest > HOOK["max_w"]:
-        size = max(40, int(size * HOOK["max_w"] / widest))
+    if widest > cfg["max_w"]:
+        size = max(40, int(size * cfg["max_w"] / widest))
         widest = max(f.width(l, size) for l in lines)
     line_h = f.em(size) * 1.16
-    bw, bh = widest + 2 * HOOK["pad_x"], line_h * len(lines) + 2 * HOOK["pad_y"]
-    x0, y0, r = (W - bw) / 2, y - bh / 2, min(HOOK["radius"], bh / 2)
-    x1, y1 = x0 + bw, y0 + bh
-    n = lambda v: f"{v:.0f}"                                                         # noqa: E731
-    box = (f"m {n(x0 + r)} {n(y0)} l {n(x1 - r)} {n(y0)} b {n(x1)} {n(y0)} {n(x1)} {n(y0)} {n(x1)} {n(y0 + r)} "
-           f"l {n(x1)} {n(y1 - r)} b {n(x1)} {n(y1)} {n(x1)} {n(y1)} {n(x1 - r)} {n(y1)} "
-           f"l {n(x0 + r)} {n(y1)} b {n(x0)} {n(y1)} {n(x0)} {n(y1)} {n(x0)} {n(y1 - r)} "
-           f"l {n(x0)} {n(y0 + r)} b {n(x0)} {n(y0)} {n(x0)} {n(y0)} {n(x0 + r)} {n(y0)}")
     span = f"{_ts(0)},{_ts(dur)}"
-    ev = [f"Dialogue: 3,{span},Hook,,0,0,0,,{{\\an7\\pos(0,0)\\fad(160,0)\\c&H{HOOK['box']}&\\p1}}{box}{{\\p0}}"]
+    ev = []
+    if cfg.get("box"):
+        bw, bh = widest + 2 * cfg["pad_x"], line_h * len(lines) + 2 * cfg["pad_y"]
+        x0, y0, r = (W - bw) / 2, y - bh / 2, min(cfg["radius"], bh / 2)
+        x1, y1 = x0 + bw, y0 + bh
+        n = lambda v: f"{v:.0f}"                                                         # noqa: E731
+        box = (f"m {n(x0 + r)} {n(y0)} l {n(x1 - r)} {n(y0)} b {n(x1)} {n(y0)} {n(x1)} {n(y0)} {n(x1)} {n(y0 + r)} "
+               f"l {n(x1)} {n(y1 - r)} b {n(x1)} {n(y1)} {n(x1)} {n(y1)} {n(x1 - r)} {n(y1)} "
+               f"l {n(x0 + r)} {n(y1)} b {n(x0)} {n(y1)} {n(x0)} {n(y1)} {n(x0)} {n(y1 - r)} "
+               f"l {n(x0)} {n(y0 + r)} b {n(x0)} {n(y0)} {n(x0)} {n(y0)} {n(x0 + r)} {n(y0)}")
+        ev.append(f"Dialogue: 3,{span},Hook,,0,0,0,,{{\\an7\\pos(0,0)\\fad(160,0)\\c&H{cfg['box']}&\\p1}}{box}{{\\p0}}")
+    outline = cfg.get("outline", 0)
+    out_tag = f"\\bord{outline}\\3c&H000000&" if outline else "\\bord0"
     for i, line in enumerate(lines):
         cy = y - line_h * (len(lines) - 1) / 2 + i * line_h - f.cap_shift(size)
-        ev.append(f"Dialogue: 4,{span},Hook,,0,0,0,,{{\\an5\\pos({W // 2},{cy:.0f})\\fad(160,0)\\fs{size}}}{line}")
+        ev.append(f"Dialogue: 4,{span},Hook,,0,0,0,,{{\\an5\\pos({W // 2},{cy:.0f})\\fad(160,0)\\c&H{cfg['ink']}&\\fs{size}{out_tag}}}{line}")
     return ev
 
 
-def build_ass(words, start, end, hook, style_name, highlight, hook_y, cap_y) -> str:
+def build_ass(words, start, end, hook, style_name, highlight, hook_y, cap_y, hook_style="white") -> str:
     st = STYLES.get(style_name, STYLES["bounce"])
+    hk = HOOK_STYLES.get(hook_style, HOOK)
     words = [dict(w, s=w["s"] - CAPTION_LEAD, e=w["e"] - CAPTION_LEAD) for w in words]
     strong = {_key(h) for h in highlight if _key(h)}
+    outline_val = hk.get("outline", 0)
     head = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {W}
@@ -180,13 +306,16 @@ ScaledBorderAndShadow: yes
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Cap,{st['font']},{st['size']},&H00{st['base']},&H00{st['base']},&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,{st['outline']},0,5,0,0,0,1
-Style: Hook,{HOOK['font']},{HOOK['size']},&H00{HOOK['ink']},&H00{HOOK['ink']},&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1
+Style: Hook,{hk['font']},{hk['size']},&H00{hk['ink']},&H00{hk['ink']},&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,{outline_val},0,5,0,0,0,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     dur = end - start
-    ev = _hook_events(_clean(hook), dur, hook_y)
+    if has_emoji(hook):
+        ev = []
+    else:
+        ev = _hook_events(_clean(hook), dur, hook_y, hook_style=hook_style)
     f = _Font.get(st["font"])
     inside = [dict(w, w=_clean(w["w"])) for w in words if w["s"] >= start - 0.05 and w["s"] < end]
     inside = sorted((w for w in inside if w["w"]), key=lambda w: w["s"])
@@ -313,6 +442,8 @@ SFX_MAP = {
 
 def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, src_w: int, src_h: int) -> dict:
     """Writes <name>.mp4, <name>.jpg and <name>.ass into out_dir. Returns file names."""
+    src = src.resolve()
+    out_dir = out_dir.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     start, end = clip["start"], clip["end"]
     if words and not clip.get("manual_trim"):
@@ -330,26 +461,90 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
         layout = "crop"     # no webcam found: the game fills the screen, which is still the right shape
     hook_y = _hook_y(layout, hook_y, face)
     ass = build_ass(words if clip.get("captions", True) else [], start, end, clip.get("hook", ""), clip.get("style", "bounce"),
-                    clip.get("highlight_words", []), hook_y, cap_y)
+                    clip.get("highlight_words", []), hook_y, cap_y, hook_style=clip.get("hook_style", "white"))
     # The clip is made in a short work folder and moved into place afterwards. The caption step of ffmpeg cannot
     # open files whose full path is longer than 260 characters on Windows, which a data folder deep inside other
     # folders easily reaches. Inside the work folder every name is short and relative (a drive colon would also
     # break the filter syntax).
     work = Path(tempfile.mkdtemp(prefix="pk"))
     try:
+        hook_img = None
+        if has_emoji(clip.get("hook", "")):
+            hook_im = render_hook_image(clip.get("hook", ""), hook_style=clip.get("hook_style", "white"), y=hook_y)
+            hook_img = work / f"{name}.hook.png"
+            hook_im.save(hook_img, format="PNG")
         # The title and description are also written into the file itself, for any place that reads them from it.
         meta = {"title": clip.get("title") or "", "description": clip.get("description") or "", "comment": clip.get("description") or ""}
         return _render_in(work, src, out_dir, name, start, end, layout, fg_h, ass, face=face, meta=meta,
                           sfx=clip.get("sfx") or clip.get("meme"),
                           category=clip.get("category"),
                           flash=clip.get("flash", False),
-                          music=clip.get("music"))
+                          music=clip.get("music"),
+                          hook_img=hook_img)
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def burn_subtitles(base_mp4: Path, ass_file: Path, out_mp4: Path, out_jpg: Path, vf_extra="", meta=None, hook_img: Path = None):
+    """Burns ASS subtitles quickly onto a pre-rendered clean vertical clip (base_mp4) and extracts cover."""
+    global _qsv_ok
+    base_mp4 = base_mp4.resolve()
+    ass_file = ass_file.resolve()
+    out_mp4 = out_mp4.resolve()
+    out_jpg = out_jpg.resolve()
+    if hook_img:
+        hook_img = hook_img.resolve()
+    work = Path(tempfile.mkdtemp(prefix="pkburn"))
+    try:
+        shutil.copyfile(ass_file, work / ass_file.name)
+        (work / "f").mkdir(exist_ok=True)
+        for f in config.FONTS_DIR.glob("*.ttf"):
+            shutil.copyfile(f, work / "f" / f.name)
+        win_emj = Path("C:/Windows/Fonts/seguiemj.ttf")
+        if win_emj.exists() and not (work / "f" / "seguiemj.ttf").exists():
+            try:
+                shutil.copyfile(win_emj, work / "f" / "seguiemj.ttf")
+            except OSError:
+                pass
+
+        if hook_img and hook_img.is_file():
+            shutil.copyfile(hook_img, work / "hook.png")
+            fc = f"[0:v]ass={ass_file.name}:fontsdir=f{vf_extra}[vsub];[vsub][1:v]overlay=0:0[v0]"
+            cmd = ["ffmpeg", "-y", "-v", "error", "-i", str(base_mp4), "-i", str(work / "hook.png"),
+                   "-filter_complex", fc, "-map", "[v0]", "-map", "0:a?", "-c:a", "copy"]
+        else:
+            cmd = ["ffmpeg", "-y", "-v", "error", "-i", str(base_mp4),
+                   "-vf", f"ass={ass_file.name}:fontsdir=f{vf_extra}",
+                   "-c:a", "copy"]
+        for k, v in (meta or {}).items():
+            if v:
+                cmd += ["-metadata", f"{k}={v}"]
+        cmd += ["-movflags", "+faststart", "-pix_fmt"]
+        encoders = [
+            ("x264", ["yuv420p", "-c:v", "libx264", "-crf", "21", "-preset", "ultrafast"]),
+        ]
+        err = None
+        for label, enc in encoders:
+            try:
+                p = subprocess.run(cmd + enc + [str(work / out_mp4.name)], cwd=work, capture_output=True, text=True,
+                                   encoding="utf-8", errors="replace", creationflags=NO_WINDOW, timeout=120)
+                if p.returncode == 0:
+                    break
+                err = p.stderr[-1200:]
+            except subprocess.TimeoutExpired:
+                err = f"{label} encoding timed out"
+        else:
+            raise RuntimeError(f"Burn failed: {err}")
+        run(["ffmpeg", "-y", "-v", "error", "-ss", "1.0", "-i", str(work / out_mp4.name), "-frames:v", "1",
+             "-q:v", "3", str(work / out_jpg.name)], cwd=work)
+        shutil.move(str(work / out_mp4.name), str(out_mp4))
+        shutil.move(str(work / out_jpg.name), str(out_jpg))
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
 
 def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layout, fg_h, ass: str, face=None, meta=None,
-               sfx=None, category=None, flash=False, music=None) -> dict:
+               sfx=None, category=None, flash=False, music=None, hook_img=None) -> dict:
     global _qsv_ok
     (work / f"{name}.ass").write_text(ass, encoding="utf-8")
     (work / "f").mkdir()
@@ -391,14 +586,15 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
         if flash or str(category).lower() in ("shock", "rage", "clutch"):
             vf_extra = f",drawbox=x=0:y=0:w=iw:h=ih:color=white@0.25:t=fill:enable='between(t,{impact_sec:.3f},{impact_sec + 0.07:.3f})'"
 
-        fc = _filter(layout, fg_h, face) + f"[v0]ass={name}.ass:fontsdir=f{vf_extra}[v];" + af_sfx
+        fc_base = _filter(layout, fg_h, face) + af_sfx
         map_a = ["-map", "[aout]"]
     else:
-        fc = _filter(layout, fg_h, face) + f"[v0]ass={name}.ass:fontsdir=f[v]"
+        vf_extra = ""
+        fc_base = _filter(layout, fg_h, face).rstrip(";")
         map_a = ["-map", "0:a:0", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11"]
 
     base = ["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.2f}", "-t", f"{dur:.2f}", "-i", str(src)] + sfx_inputs + [
-            "-filter_complex", fc, "-map", "[v]"] + map_a + [
+            "-filter_complex", fc_base, "-map", "[v0]"] + map_a + [
             "-c:a", "aac", "-b:a", "160k", "-ar", "48000"]
     for k, v in (meta or {}).items():
         if v:
@@ -410,7 +606,7 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
     encoders.append(("x264", ["yuv420p", "-c:v", "libx264", "-crf", "21", "-preset", "veryfast"]))
     err = None
     for label, enc in encoders:
-        p = subprocess.run(base + enc + [f"{name}.mp4"], cwd=work, capture_output=True, text=True,
+        p = subprocess.run(base + enc + [f"{name}.base.mp4"], cwd=work, capture_output=True, text=True,
                            encoding="utf-8", errors="replace", creationflags=NO_WINDOW, timeout=RENDER_SECONDS)
         if p.returncode == 0:
             if label == "qsv":
@@ -421,11 +617,12 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
             _qsv_ok = False
     else:
         raise RuntimeError(f"Render failed: {err}")
-    cover_t = min(1.2, (end - start) / 2)
-    run(["ffmpeg", "-y", "-v", "error", "-ss", f"{cover_t:.2f}", "-i", f"{name}.mp4", "-frames:v", "1",
-         "-q:v", "3", f"{name}.jpg"], cwd=work)
-    for ext in ("mp4", "jpg", "ass"):
-        shutil.move(str(work / f"{name}.{ext}"), str(out_dir / f"{name}.{ext}"))
+
+    burn_subtitles(work / f"{name}.base.mp4", work / f"{name}.ass", work / f"{name}.mp4", work / f"{name}.jpg",
+                   vf_extra=vf_extra, meta=meta, hook_img=hook_img)
+    for ext in ("mp4", "base.mp4", "jpg", "ass", "hook.png"):
+        if (work / f"{name}.{ext}").exists():
+            shutil.move(str(work / f"{name}.{ext}"), str(out_dir / f"{name}.{ext}"))
     out_dict = {"file": f"{name}.mp4", "cover": f"{name}.jpg", "layout": layout}
     try:
         from . import qc

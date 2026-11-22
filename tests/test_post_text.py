@@ -131,6 +131,10 @@ def main(data):
             server.rerender(job["id"], "clip1", {"hashtags": "#one two"})
             check("Save and re-make also keeps typed hashtags", clip["hashtags"] == ["one", "two"])
 
+            server.clip_text(job["id"], "clip1", {"hook": "NEW HOOK", "hook_style": "yellow", "captions": False})
+            check("hook and hook_style are saved", clip["hook"] == "NEW HOOK" and clip["hook_style"] == "yellow" and clip["captions"] is False)
+            check("saving hook and hook_style does not queue a render", queue.call_count == 1)
+
         with ctx.as_user("someone-else"):
             check("someone else cannot change this clip's text",
                   fails_with(lambda: server.clip_text(job["id"], "clip1", {"title": "hacked"}), 404))

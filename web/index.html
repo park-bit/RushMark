@@ -936,7 +936,9 @@ const I = {
  "signout": "<path d=\"M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z\"/>",
  "shield": "<path d=\"M208,40H48A16,16,0,0,0,32,56v56c0,52.72,25.52,84.67,46.93,102.19,23.06,18.86,46,25.26,47,25.53a8,8,0,0,0,4.2,0c1-.27,23.91-6.67,47-25.53C198.48,196.67,224,164.72,224,112V56A16,16,0,0,0,208,40Zm0,72c0,37.07-13.66,67.16-40.6,89.42A129.3,129.3,0,0,1,128,223.62a128.25,128.25,0,0,1-38.92-21.81C61.82,179.51,48,149.3,48,112l0-56,160,0ZM82.34,141.66a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32l-56,56a8,8,0,0,1-11.32,0Z\"/>",
  "users": "<path d=\"M117.25,157.92a60,60,0,1,0-66.5,0A95.83,95.83,0,0,0,3.53,195.63a8,8,0,1,0,13.4,8.74,80,80,0,0,1,134.14,0,8,8,0,0,0,13.4-8.74A95.83,95.83,0,0,0,117.25,157.92ZM40,108a44,44,0,1,1,44,44A44.05,44.05,0,0,1,40,108Zm210.14,98.7a8,8,0,0,1-11.07-2.33A79.83,79.83,0,0,0,172,168a8,8,0,0,1,0-16,44,44,0,1,0-16.34-84.87,8,8,0,1,1-5.94-14.85,60,60,0,0,1,55.53,105.64,95.83,95.83,0,0,1,47.22,37.71A8,8,0,0,1,250.14,206.7Z\"/>",
- "lock": "<path d=\"M128,112a28,28,0,0,0-8,54.83V184a8,8,0,0,0,16,0V166.83A28,28,0,0,0,128,112Zm0,40a12,12,0,1,1,12-12A12,12,0,0,1,128,152Zm80-72H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Z\"/>"
+ "lock": "<path d=\"M128,112a28,28,0,0,0-8,54.83V184a8,8,0,0,0,16,0V166.83A28,28,0,0,0,128,112Zm0,40a12,12,0,1,1,12-12A12,12,0,0,1,128,152Zm80-72H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Z\"/>",
+ "camera": "<path d=\"M208,56H180.28L166.65,35.56A8,8,0,0,0,160,32H96a8,8,0,0,0-6.65,3.56L75.71,56H48A24,24,0,0,0,24,80V192a24,24,0,0,0,24,24H208a24,24,0,0,0,24-24V80A24,24,0,0,0,208,56Zm8,136a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V80a8,8,0,0,1,8-8H80a8,8,0,0,0,6.66-3.56L100.28,48h55.43l13.63,20.44A8,8,0,0,0,176,72h32a8,8,0,0,1,8,8ZM128,88a44,44,0,1,0,44,44A44.05,44.05,0,0,0,128,88Zm0,72a28,28,0,1,1,28-28A28,28,0,0,1,128,160Z\"/>",
+ "image": "<path d=\"M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM40,56H216V157.38l-42.34-42.35a8,8,0,0,0-11.32,0L116.69,160,85.66,128.97a8,8,0,0,0-11.32,0L40,163.31ZM216,200H40v-14.7l40-40,31,31a8,8,0,0,0,11.32,0l45.65-45.65L216,180Zm-72-96a20,20,0,1,1,20-20A20,20,0,0,1,144,104Z\"/>"
 };
 const ic = n => `<svg viewBox="0 0 256 256" aria-hidden="true">${I[n]}</svg>`;
 const navIc = (n, v) => ic(S.view === v && I[n + "_f"] ? n + "_f" : n);
@@ -1751,7 +1753,11 @@ function postPills(c) {
   return Object.values(c.posts || {}).filter(p => p.status !== "cancelled").map(p => {
     const cls = p.status === "posted" ? "ok" : p.status === "failed" ? "bad" : "warn";
     const txt = `${esc(p.account_name)} · ${p.status === "scheduled" ? clock(p.due_at) : p.status}`;
-    return p.url ? `<a class="pill ${cls}" href="${esc(p.url)}" target="_blank" rel="noopener">${txt}</a>` : `<span class="pill ${cls}" title="${esc(p.error || "")}">${txt}</span>`;
+    if (p.url) return `<a class="pill ${cls}" href="${esc(p.url)}" target="_blank" rel="noopener">${txt}</a>`;
+    if (p.status === "scheduled") {
+      return `<button type="button" class="pill warn" data-act="postpidnow" data-pid="${esc(p.id)}" title="Scheduled for ${clock(p.due_at)}. Click to post right away!" style="cursor:pointer;border:none;font:inherit">${txt} <i>(Post now)</i></button>`;
+    }
+    return `<span class="pill ${cls}" title="${esc(p.error || "")}">${txt}</span>`;
   }).join("");
 }
 function clipHtml(j, c) {
@@ -1811,9 +1817,10 @@ function jobHtml(j) {
   const who = !creatorId() && j.creator ? S.creators.find(c => c.id === j.creator)?.name : "";
   const meta = [who, j.uploader, j.duration ? fmt(j.duration) + " long" : "", j.clips.length ? j.clips.length + (j.clips.length === 1 ? " clip" : " clips") : "",
                 j.took ? "made in " + fmt(j.took) : "", j.kind === "live" ? "recording, " + j.stage.toLowerCase() : ""].filter(Boolean).map(esc).join(" · ");
-  const pic = j.thumb ? `<img src="/media/${esc(j.id)}/thumb.jpg" alt="" loading="lazy">` : ic(j.source?.type === "file" ? "film" : "link");
-  return `<div class="job-head"><div class="jt"><span class="jthumb">${pic}${j.duration ? `<span class="du">${fmt(j.duration)}</span>` : ""}</span><div style="min-width:0"><h3>${esc(j.title || j.source.name)}</h3><p class="sub">${meta}</p></div></div>
+  const pic = j.thumb ? `<img src="/media/${esc(j.id)}/thumb.jpg?v=${j.thumb_v || 1}" alt="" loading="lazy">` : ic(j.source?.type === "file" ? "film" : "link");
+  return `<div class="job-head"><div class="jt"><span class="jthumb" data-act="jobthumb" data-j="${j.id}" title="Click to change video thumbnail" style="cursor:pointer">${pic}${j.duration ? `<span class="du">${fmt(j.duration)}</span>` : ""}</span><div style="min-width:0"><h3>${esc(j.title || j.source.name)}</h3><p class="sub">${meta}</p></div></div>
       <div class="row" style="flex-wrap:nowrap;gap:4px">${busy ? "" : `
+        <button class="btn sm icon ghost" data-act="jobthumb" data-j="${j.id}" title="Change video thumbnail" aria-label="Change video thumbnail">${ic("image")}</button>
         ${j.clips.some(c => c.status === "done") ? `<button class="btn sm icon ghost" data-act="dlall" data-j="${j.id}" title="Download all clips of this video" aria-label="Download all clips of this video">${ic("down")}</button>` : ""}
         <button class="btn sm icon ghost" data-act="deljob" data-j="${j.id}" title="Delete" aria-label="Delete this video and its clips">${ic("trash")}</button>
         <label class="selck" title="Select this video and its clips"><input type="checkbox" data-sel="j:${j.id}" ${sel().has("j:" + j.id) ? "checked" : ""} aria-label="Select this video"></label>`}</div></div>
@@ -1938,6 +1945,7 @@ function drawCreatorForm() {
       <div class="fields"><label class="sw span"><input type="checkbox" data-k="captions" data-caption-toggle ${c.captions === false ? "" : "checked"}>Generate captions</label>
         <label class="f">Caption style<select data-k="style" data-caption-style ${c.captions === false ? "disabled" : ""}>${opts(S.status.styles, c.style)}</select></label>
         <label class="f">Layout<select data-k="layout">${opts(S.status.layouts, c.layout)}</select></label>
+        <label class="f">Big text style<select data-k="hook_style">${opts(S.status.hook_styles || {"white":"White Box","yellow":"Yellow Box","black":"Dark Box","red":"Red Box","outline":"Outline (No box)"}, c.hook_style || "white")}</select></label>
         <label class="f">Game<input data-k="game" value="${esc(c.game || "")}" placeholder="Read from the title"><small class="sub" style="font-weight:400">Left empty, the game is read from the stream's title. Set it for a streamer whose title says nothing: GTA 6, Fortnite, Elden Ring.</small></label>
         <label class="f">Shortest clip (seconds)<input data-k="min_len" type="number" value="${c.min_len}"></label>
         <label class="f">Longest clip (seconds)<input data-k="max_len" type="number" value="${c.max_len}"></label>
@@ -2027,7 +2035,7 @@ function drawOverview() {
     <div class="card"><div class="card-head"><div><h2>Post queue</h2><p class="sub">${o.paused ? "Paused. Recording and clipping carry on; nothing is posted." : "Queued clips go out at their scheduled time."}</p></div>
         <button class="btn ${o.paused ? "primary" : ""}" data-act="pause">${ic(o.paused ? "play" : "pause")}${o.paused ? "Resume posting" : "Pause all posting"}</button></div>
       ${o.posts.length ? `<div class="scroll"><table class="stack"><tr><th>When</th><th>Clip</th><th>Creator</th><th>Account</th><th class="num">Views</th><th></th></tr>
-      ${o.posts.map(p => `<tr><td data-l="Status">${pst(p)}</td><td data-l="Clip" class="c-main">${p.url ? `<a class="lnk" href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a>` : esc(p.title)}${p.error ? `<div class="err" style="margin:2px 0 0">${esc(p.error)}</div>` : ""}</td><td data-l="Creator">${esc(p.creator_name || "None")}</td><td data-l="Account">${esc(p.account_name)}</td><td data-l="Views" class="num">${p.views ?? "–"}</td>
+      ${o.posts.map(p => `<tr><td data-l="Status">${pst(p)}</td><td data-l="Clip" class="c-main">${p.url ? `<a class="lnk" href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a>` : esc(p.title)}${p.error ? `<div class="err" style="margin:2px 0 0">${esc(p.error)}</div>` : ""}</td><td data-l="Creator">${esc(p.creator_name || "None")}</td><td data-l="Account">${esc(p.account_name)}</td><td data-l="Views" class="num">${p.views ?? "-"}</td>
         <td class="c-act" style="text-align:right">${p.status === "scheduled" ? `<button class="btn sm" data-act="pcancel" data-id="${p.id}">Cancel</button>` : p.status === "failed" ? `<button class="btn sm" data-act="pretry" data-id="${p.id}">Retry</button>` : ""}</td></tr>`).join("")}</table></div>`
       : `<p class="help">Nothing queued or posted yet.</p>`}</div>`);
 }
@@ -2238,6 +2246,60 @@ async function ytCookiesCard(logo) {
 }
 async function saveSettings() { const d = {}; $$("#sform [data-s]").forEach(i => d[i.dataset.s] = i.value); await send("/api/settings", d, "PUT"); }
 
+function openJobThumbDlg(jid) {
+  const j = jobOf(jid);
+  if (!j) return;
+  const d = $("#formdlg");
+  d.innerHTML = `<form method="dialog" class="dlg">
+    <h2>Change video thumbnail</h2>
+    <p class="help">${esc(j.title || j.source?.name || "Video")}</p>
+    <label class="f">Capture from video (seconds)
+      <div class="row" style="gap:6px">
+        <input id="jtsec" type="number" step="0.5" min="0" max="${j.duration || 99999}" placeholder="e.g. 5.0" style="flex:1">
+        <button type="button" class="btn sm" id="jtbtnsec">${ic("camera")}Capture frame</button>
+      </div>
+    </label>
+    <div style="margin:14px 0 6px;text-align:center;font-size:12px;color:var(--dim)">or</div>
+    <label class="f">Custom thumbnail image
+      <div class="row" style="gap:6px">
+        <button type="button" class="btn sm ghost" id="jtbtnfile" style="flex:1">${ic("image")}Upload image file</button>
+        <input type="file" id="jtfile" accept="image/*" hidden>
+      </div>
+    </label>
+    <div class="dlg-foot" style="margin-top:18px"><button class="btn" value="close">Close</button></div>
+  </form>`;
+  $("#jtbtnsec").onclick = async () => {
+    const sec = parseFloat($("#jtsec").value);
+    if (isNaN(sec) || sec < 0) return toast("Enter a timestamp in seconds", "bad");
+    $("#jtbtnsec").disabled = true;
+    try {
+      await send(`/api/jobs/${j.id}/thumbnail`, {time: sec});
+      toast("Video thumbnail updated", "ok");
+      d.close();
+      return tick();
+    } catch (err) { toast(err.message, "bad"); }
+    finally { $("#jtbtnsec").disabled = false; }
+  };
+  $("#jtbtnfile").onclick = () => $("#jtfile").click();
+  $("#jtfile").onchange = () => {
+    const file = $("#jtfile").files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      $("#jtbtnfile").disabled = true;
+      try {
+        await send(`/api/jobs/${j.id}/thumbnail`, {image: reader.result});
+        toast("Video thumbnail updated", "ok");
+        d.close();
+        return tick();
+      } catch (err) { toast(err.message, "bad"); }
+      finally { $("#jtbtnfile").disabled = false; }
+    };
+    reader.readAsDataURL(file);
+  };
+  d.showModal();
+}
+
 /* ============================================================ clip editor */
 function openClip(jid, cid) { D.jid = jid; D.cid = cid; D.sig = ""; drawClipDlg(true); $("#clipdlg").showModal(); }
 function drawClipDlg(full) {
@@ -2253,18 +2315,33 @@ function drawClipDlg(full) {
         <div class="job-head" style="margin:0"><div><span class="badge ${scoreCls(c.score)}" style="position:static">${c.judges ? "Words " + c.judges.words + (c.judges.reaction ? " · Reaction " + c.judges.reaction : "") : c.score ? "Score " + c.score : "Clipped by hand"}</span>
           <p class="sub" style="margin-top:8px">${esc(c.reason || "")}</p></div><button class="btn icon ghost" data-act="closedlg" aria-label="Close">${ic("x")}</button></div>
         <h3>On the video</h3>
-        <label class="f">Big text<input data-f="hook" value="${esc(c.hook)}"></label>
+        <div class="two"><label class="f">Big text<input data-f="hook" value="${esc(c.hook)}"></label>
+          <label class="f">Big text style<select data-f="hook_style">${opts(S.status.hook_styles || {"white":"White Box","yellow":"Yellow Box","black":"Dark Box","red":"Red Box","outline":"Outline (No box)"}, c.hook_style || "white")}</select></label></div>
         <label class="sw"><input type="checkbox" data-f="captions" data-caption-toggle ${c.captions === false ? "" : "checked"}>Generate captions</label>
         <div class="two"><label class="f">Caption style<select data-f="style" data-caption-style ${c.captions === false ? "disabled" : ""}>${opts(S.status.styles, c.style)}</select></label>
           <label class="f">Layout<select data-f="layout">${opts(S.status.layouts, c.layout)}</select></label></div>
         <div class="two"><label class="f">Start (seconds)<input data-f="start" type="number" step="0.5" value="${c.start}"></label>
           <label class="f">End (seconds)<input data-f="end" type="number" step="0.5" value="${c.end}"></label></div>
+        <div class="f"><span class="flabel" style="font-size:12px;font-weight:600;color:var(--brand-ink);margin-bottom:6px;display:block">Thumbnail</span>
+          <div class="row" style="gap:6px">
+            <button type="button" class="btn sm" data-act="snapthumb" title="Capture current frame from the video player">${ic("camera")}Use current video frame</button>
+            <button type="button" class="btn sm ghost" data-act="uploadclipthumb" title="Upload a custom thumbnail image">${ic("image")}Upload image</button>
+            <input type="file" id="clipthumbfile" accept="image/*" hidden>
+          </div>
+        </div>
         <div class="row" style="justify-content:space-between;align-items:center"><h3>Post text</h3>
-          <button class="btn sm" data-act="writetext">Write again with AI</button></div>
+          <div class="row" style="gap:6px">
+            <button class="btn sm ghost" data-act="fetchbesthashtags" title="Fetch 30+30 trending tags from best-hashtags.com">${ic("bolt")}Best-hashtags (30+30)</button>
+            <button class="btn sm" data-act="writetext">Write again with AI</button>
+          </div>
+        </div>
         <label class="f">Title<input data-f="title" value="${esc(c.title)}"></label>
-        <label class="f">Description<textarea data-f="description" rows="2">${esc(c.description)}</textarea></label>
+        <label class="f">Description<textarea data-f="description" rows="3">${esc(c.description)}</textarea></label>
         <label class="f">Hashtags<input data-f="hashtags" value="${esc((c.hashtags || []).join(" "))}" placeholder="funny gaming clutch"></label>
-        <button class="btn" data-act="remake">${ic("scissors")}Save and re-make clip</button>
+        <div class="row" style="gap:8px">
+          <button class="btn primary" data-act="savetext">${ic("check")}Save & Update Video</button>
+          <button class="btn ghost" data-act="remake" title="Full re-encode from original video (only needed for start/end cut times or layout changes)">${ic("scissors")}Re-make video</button>
+        </div>
         <h3>Post it</h3>
         <div id="dposts" class="row" style="gap:4px"></div>
         ${S.accounts.length ? `<div class="row">${S.accounts.map(a => `<label class="ck"><input type="checkbox" data-pacc value="${esc(a.id)}">${esc(a.label)} · ${esc(a.name)}</label>`).join("")}</div>
@@ -2278,9 +2355,18 @@ function drawClipDlg(full) {
   D.sig = sig;
   put($("#dposts"), postPills(c));
 }
-function postText() {   // the post text as it is in the clip editor right now
-  const v = k => $(`#clipdlg [data-f="${k}"]`).value;
-  return {title: v("title"), description: v("description"), hashtags: v("hashtags").split(/\s+/).map(h => h.replace(/^#+/, "")).filter(Boolean)};
+function postText() {   // the post text and video options as in the clip editor right now
+  const v = k => $(`#clipdlg [data-f="${k}"]`)?.value ?? "";
+  const ck = k => $(`#clipdlg [data-f="${k}"]`)?.checked ?? true;
+  return {
+    title: v("title"),
+    description: v("description"),
+    hashtags: v("hashtags").split(/\s+/).map(h => h.replace(/^#+/, "")).filter(Boolean),
+    hook: v("hook"),
+    hook_style: v("hook_style") || "white",
+    captions: ck("captions"),
+    style: v("style"),
+  };
 }
 $("#clipdlg").addEventListener("close", () => { $("#clipdlg").innerHTML = ""; D.jid = null; });
 $("#clipdlg").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
@@ -2605,11 +2691,90 @@ document.addEventListener("click", async e => {
       if (!await ask("Disconnect this account?", "Posts still waiting for it will fail.", "Disconnect", true)) return;
       await api(`/api/accounts/${d.id}`, {method:"DELETE"}); await tick(); return drawSettings();
     }
+    if (a === "postpidnow") {
+      b.disabled = true; const was = b.textContent; b.textContent = "Posting...";
+      try {
+        await api(`/api/posts/${d.pid}/now`, {method:"POST"});
+        toast("Posting now...", "ok");
+        return tick();
+      } catch (err) { toast(err.message, "bad"); }
+      finally { b.disabled = false; b.textContent = was; }
+    }
+    if (a === "savetext") {
+      b.disabled = true; const was = b.textContent; b.textContent = "Updating video...";
+      try {
+        await send(`/api/jobs/${D.jid}/clips/${D.cid}/text`, postText(), "PUT");
+        toast("Saved and updated video", "ok");
+        await tick();
+        const j = jobOf(D.jid), c = j?.clips.find(x => x.id === D.cid);
+        if (c && $("#stage video")) {
+          const m = `/media/${j.id}/`;
+          $("#stage video").src = `${m}${esc(c.file)}?v=${c.version}&t=${Date.now()}`;
+          $("#stage video").load();
+          $("#stage video").play().catch(() => {});
+        }
+        return;
+      } catch (err) {
+        toast(err.message, "bad");
+      } finally { b.disabled = false; b.textContent = was; }
+    }
+    if (a === "snapthumb") {
+      const vid = $("#stage video");
+      if (!vid) return toast("Wait for the clip video to finish rendering first.", "bad");
+      const t = vid.currentTime || 0;
+      b.disabled = true; const was = b.textContent; b.textContent = "Capturing...";
+      try {
+        await send(`/api/jobs/${D.jid}/clips/${D.cid}/thumbnail`, {time: t});
+        toast("Thumbnail updated from frame " + fmt(t), "ok");
+        return tick();
+      } finally { b.disabled = false; b.textContent = was; }
+    }
+    if (a === "uploadclipthumb") {
+      const fi = $("#clipthumbfile");
+      if (!fi) return;
+      fi.onchange = () => {
+        const file = fi.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async () => {
+          b.disabled = true;
+          try {
+            await send(`/api/jobs/${D.jid}/clips/${D.cid}/thumbnail`, {image: reader.result});
+            toast("Custom thumbnail uploaded", "ok");
+            return tick();
+          } catch (err) { toast(err.message, "bad"); }
+          finally { b.disabled = false; }
+        };
+        reader.readAsDataURL(file);
+      };
+      fi.click();
+      return;
+    }
+    if (a === "fetchbesthashtags") {
+      b.disabled = true; const was = b.textContent; b.textContent = "Fetching tags...";
+      try {
+        const res = await send(`/api/jobs/${D.jid}/clips/${D.cid}/hashtags`, {});
+        const hf = $(`#clipdlg [data-f="hashtags"]`);
+        const df = $(`#clipdlg [data-f="description"]`);
+        if (hf && res.hashtags) hf.value = res.hashtags.join(" ");
+        if (df && res.description) df.value = res.description;
+        return toast(`Fetched ${res.hashtags ? res.hashtags.length : 0} tags from best-hashtags.com`, "ok");
+      } catch (err) { toast(err.message, "bad"); }
+      finally { b.disabled = false; b.textContent = was; }
+    }
+    if (a === "jobthumb") {
+      return openJobThumbDlg(d.j);
+    }
     if (a === "remake") {
       const body = {}; $$("#clipdlg [data-f]").forEach(i => {
         body[i.dataset.f] = i.type === "checkbox" ? i.checked : i.type === "number" ? Number(i.value) : i.value;
       });
-      await send(`/api/jobs/${D.jid}/clips/${D.cid}/render`, body); toast("Re-making the clip…", "ok"); return tick();
+      b.disabled = true; const was = b.textContent; b.textContent = "Updating...";
+      try {
+        await send(`/api/jobs/${D.jid}/clips/${D.cid}/render`, body);
+        toast("Updated video", "ok");
+        return tick();
+      } finally { b.disabled = false; b.textContent = was; }
     }
     if (a === "writetext") {
       b.disabled = true; const was = b.textContent; b.textContent = "Writing…";
@@ -2624,9 +2789,12 @@ document.addEventListener("click", async e => {
       const accs = $$("#clipdlg [data-pacc]:checked").map(i => i.value);
       if (!accs.length) return toast("Tick at least one account first.", "bad");
       if (a === "postnow" && !await ask("Post now?", `This clip goes to ${accs.length} account${accs.length > 1 ? "s" : ""} straight away.`, "Post now")) return;
-      await send(`/api/jobs/${D.jid}/clips/${D.cid}/text`, postText(), "PUT");   // the text as it is in the boxes now
-      await send("/api/posts", {job:D.jid, clip:D.cid, accounts:accs, now:a === "postnow"});
-      toast(a === "postnow" ? "Posting now" : "Added to the queue", "ok"); return tick();
+      b.disabled = true; const was = b.textContent; b.textContent = a === "postnow" ? "Posting..." : "Queueing...";
+      try {
+        await send(`/api/jobs/${D.jid}/clips/${D.cid}/text`, postText(), "PUT");   // the text as it is in the boxes now
+        await send("/api/posts", {job:D.jid, clip:D.cid, accounts:accs, now:a === "postnow"});
+        toast(a === "postnow" ? "Posting now" : "Added to the queue", "ok"); return tick();
+      } finally { b.disabled = false; b.textContent = was; }
     }
   } catch (err) { b.disabled = false; toast(err.message, "bad"); }
 });

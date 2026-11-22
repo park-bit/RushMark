@@ -64,7 +64,26 @@ def _next_slot(account_id, gap_min, cap):
     return t
 
 
-def enqueue(job, clip, account_ids, now=False) -> list:
+def _trigger_now(p, uid):
+    def _worker():
+        try:
+            with ctx.as_user(uid):
+                if accounts.settings()["paused"]:
+                    return
+                with _lock:
+                    if p["status"] not in ("scheduled", "posting"):
+                        return
+                    p["status"] = "posting"
+                    _save()
+                _mirror(p)
+                ctx.bump()
+                _post(p)
+        except Exception:  # noqa: BLE001
+            pass
+    threading.Thread(target=_worker, daemon=True).start()
+
+
+def enqueue(job, clip, account_ids, now=False, allow_repeat=False) -> list:
     c = creators.get(job["creator"]) or creators.DEFAULTS
     made = []
     with _lock:
@@ -72,9 +91,26 @@ def enqueue(job, clip, account_ids, now=False) -> list:
             acc = accounts.get(aid)
             if not acc:
                 continue
+            # When posting NOW, upgrade an already scheduled post so it posts right away
+            existing_scheduled = next((p for p in _mine() if p["job"] == job["id"]
+                                       and p["clip"] == clip["id"] and p["account"] == aid
+                                       and p["status"] == "scheduled"), None)
+            if now and existing_scheduled:
+                existing_scheduled["due_at"] = time.time()
+                made.append(existing_scheduled)
+                continue
+
+            # If it is currently uploading right now, avoid duplicate concurrent uploads
             if any(p["job"] == job["id"] and p["clip"] == clip["id"] and p["account"] == aid
-                   and p["status"] in OPEN + ("posted",) for p in _mine()):
-                continue  # never post the same clip to the same account twice
+                   and p["status"] == "posting" for p in _mine()):
+                continue
+
+            # When not now, block duplicates based on allow_repeat setting
+            blocked = OPEN if allow_repeat else OPEN + ("posted",)
+            if any(p["job"] == job["id"] and p["clip"] == clip["id"] and p["account"] == aid
+                   and p["status"] in blocked for p in _mine()):
+                continue
+
             due = time.time() if now else _next_slot(aid, c["post_gap_min"], c["daily_cap"])
             p = {"id": secrets.token_hex(8), "user": ctx.uid(), "job": job["id"], "clip": clip["id"], "creator": job["creator"],
                  "account": aid, "account_name": acc["name"], "platform": acc["platform"], "status": "scheduled",
@@ -85,6 +121,11 @@ def enqueue(job, clip, account_ids, now=False) -> list:
         _save()
     for p in made:
         _mirror(p)
+    if now and made:
+        uid = ctx.uid()
+        for p in made:
+            _trigger_now(p, uid)
+    ctx.bump()
     return made
 
 
@@ -104,7 +145,10 @@ def _caption(clip, creator):
     # A description the person wrote themselves is posted as it is, without the AI's hashtags added to it, and
     # one that already ends with its hashtags does not get them twice.
     tags = "" if clip.get("fixed_description") or clip.get("hashtags_in_description") else " ".join("#" + h for h in clip.get("hashtags", []))
-    return "\n\n".join(x for x in (clip.get("description", ""), tags, creator.get("post_footer", "")) if x)
+    cap = "\n\n".join(x for x in (clip.get("description", ""), tags, creator.get("post_footer", "")) if x)
+    if len(cap) > 2150:
+        cap = cap[:2150].rsplit(" ", 1)[0]
+    return cap
 
 
 def _post(p):
@@ -140,6 +184,7 @@ def _post(p):
             alerts.notify(f"post failed on {p['account_name']} ({p['title']}): {p['error'][:200]}", kind="post")
     _save()
     _mirror(p)
+    ctx.bump()
 
 
 def _run():
@@ -196,6 +241,7 @@ def cancel(pid):
         p["status"] = "cancelled"
         _save()
     _mirror(p)
+    ctx.bump()
 
 
 def retry(pid):
@@ -206,6 +252,20 @@ def retry(pid):
         p.update(status="scheduled", due_at=time.time(), tries=0, error=None)
         _save()
     _mirror(p)
+    ctx.bump()
+
+
+def post_now(pid):
+    with _lock:
+        p = next((p for p in _mine() if p["id"] == pid), None)
+        if not p or p["status"] != "scheduled":
+            raise ValueError("Only waiting posts can be posted now.")
+        p["due_at"] = time.time()
+        _save()
+    uid = p.get("user") or ctx.uid()
+    _trigger_now(p, uid)
+    _mirror(p)
+    ctx.bump()
 
 
 def overview() -> dict:
