@@ -390,7 +390,7 @@ class ResidentAgyWorker:
 
     def ask_stream(self, prompt: str):
         """Yields delta tokens as they are produced in real-time."""
-        clean = prompt.strip()[:8000]
+        clean = prompt.strip()[:100000]
         if not clean:
             yield "I am connected and ready to assist you."
             return
@@ -456,15 +456,26 @@ async def chat_completions(req: Request):
     body = await req.json()
     stream_requested = bool(body.get("stream", False))
     messages = body.get("messages", [])
+    system_text = ""
+    user_parts = []
     user_prompt = ""
     for m in messages:
+        role = m.get("role")
         c = m.get("content")
+        txt = ""
         if isinstance(c, str):
-            user_prompt += c + "\n"
+            txt = c
         elif isinstance(c, list):
             for part in c:
                 if isinstance(part, dict) and part.get("type") == "text":
-                    user_prompt += part.get("text", "") + "\n"
+                    txt += part.get("text", "") + "\n"
+        if role == "system":
+            system_text += txt + "\n"
+        else:
+            user_parts.append(txt)
+        user_prompt += txt + "\n"
+
+    is_hands = "[DO:" in system_text or "You are Nūs" in system_text or "[DO:" in user_prompt
 
     # 1. Test call
     if 'Answer with a JSON array that holds the single string "ok"' in user_prompt:
@@ -538,13 +549,45 @@ async def chat_completions(req: Request):
         return make_response(answer, stream=stream_requested, prompt_tokens=len(user_prompt) // 4)
 
     # 8. General Antigravity AI completion for Nūs Companion (Fast resident streaming)
-    clean_prompt = user_prompt.strip()
+    user_turns_text = "\n".join(user_parts).strip()
+    if is_hands:
+        clean_prompt = f"""### SYSTEM DIRECTIVE:
+{system_text.strip()}
+
+CRITICAL EXECUTION RULE: You are in active execution mode right now. DO NOT say "I am ready", DO NOT ask for requests, controls, or screenshots. Immediately take the first action using [DO:...] tags (e.g. [DO:open_app ...], [DO:click ...], [DO:type ...]) or finish with [DONE]!
+
+### USER TASK & LIVE CONTROLS:
+{user_turns_text}"""
+    elif system_text.strip():
+        clean_prompt = (system_text.strip() + "\n\n" + user_turns_text).strip()
+    else:
+        clean_prompt = user_prompt.strip()
+
     if not clean_prompt:
         return make_response("I am connected and ready. Ask me any question.", stream=stream_requested, prompt_tokens=5)
+
+    def sanitize_hands(ans_text: str) -> str:
+        s = ans_text.strip()
+        if is_hands and re.search(r"\b(?:I am ready|Send over the user|Ready to assist)\b", s, re.I):
+            low = user_prompt.lower()
+            if "hotspot" in low:
+                return 'Opening mobile hotspot settings.\n[DO:open_app {"name": "ms-settings:network-mobilehotspot"}]'
+            if "bluetooth" in low:
+                return 'Opening Bluetooth settings.\n[DO:open_app {"name": "ms-settings:bluetooth"}]'
+            if "wifi" in low or "wi-fi" in low:
+                return 'Opening Wi-Fi settings.\n[DO:open_app {"name": "ms-settings:network-wifi"}]'
+            if "zapfast" in low or "whatsapp" in low:
+                return 'Opening ZapFast.\n[DO:open_app {"name": "ZapFast"}]'
+            if "discord" in low:
+                return 'Opening Discord.\n[DO:open_app {"name": "Discord"}]'
+            if "notepad" in low:
+                return 'Opening Notepad.\n[DO:open_app {"name": "Notepad"}]'
+        return ans_text
 
     if stream_requested:
         async def real_sse_generator():
             q = queue.Queue()
+            accumulated = []
             def worker_thread():
                 try:
                     for chunk in worker.ask_stream(clean_prompt):
@@ -559,6 +602,7 @@ async def chat_completions(req: Request):
                 chunk = await loop.run_in_executor(None, q.get)
                 if chunk is None:
                     break
+                accumulated.append(chunk)
                 chunk_obj = {
                     "id": "chatcmpl-antigravity",
                     "object": "chat.completion.chunk",
@@ -567,6 +611,19 @@ async def chat_completions(req: Request):
                     "choices": [{"index": 0, "delta": {"content": chunk}, "finish_reason": None}]
                 }
                 yield f"data: {json.dumps(chunk_obj)}\n\n"
+
+            # Check if the streamed response was only "I am ready..."
+            full_str = "".join(accumulated).strip()
+            sanitized = sanitize_hands(full_str)
+            if sanitized != full_str:
+                fix_obj = {
+                    "id": "chatcmpl-antigravity",
+                    "object": "chat.completion.chunk",
+                    "created": int(time.time()),
+                    "model": "antigravity-scout",
+                    "choices": [{"index": 0, "delta": {"content": "\n" + sanitized}, "finish_reason": None}]
+                }
+                yield f"data: {json.dumps(fix_obj)}\n\n"
 
             done_obj = {
                 "id": "chatcmpl-antigravity",
@@ -581,6 +638,7 @@ async def chat_completions(req: Request):
         return StreamingResponse(real_sse_generator(), media_type="text/event-stream")
     else:
         answer = await asyncio.to_thread(worker.ask, clean_prompt)
+        answer = sanitize_hands(answer)
         return make_response(answer, stream=False, prompt_tokens=len(user_prompt) // 4)
 
 
