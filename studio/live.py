@@ -560,7 +560,8 @@ class Session:
             self.job["ai"]["last_error"] = str(e)[-200:]
         added = 0
         for c in keep:
-            match = [m for m in sig if m["end"] >= c["start"] - 10 and m["start"] <= c["end"] + 10 and m["score"] >= 50]
+            # Match reaction signals with transcript candidates (accounting for 3-15s CDN/chat reaction delay)
+            match = [m for m in sig if m["end"] >= c["start"] - 8 and m["start"] <= c["end"] + 16 and m["score"] >= 45]
             rs = max((m["score"] for m in match), default=0)
             verdict["reaction"] = rs
             both = bool(match)
@@ -634,6 +635,14 @@ class Session:
         self.n += 1
         c.update(id=f"clip{self.n:03d}", style=self.settings["style"], layout=self.settings["layout"],
                  captions=self.job["options"].get("captions", True), status="queued", version=0, made_at=time.time())
+        if self.settings.get("handle"):
+            c["handle"] = self.settings["handle"]
+        if self.settings.get("handle_pos"):
+            c["handle_pos"] = self.settings["handle_pos"]
+        if self.settings.get("custom_layout"):
+            c["custom_layout"] = self.settings["custom_layout"]
+        if self.settings.get("facecam"):
+            c["facecam"] = self.settings["facecam"]
         if self.job["options"].get("hook_text"):      # the person's own big text, in place of the AI's
             c["hook"] = self.job["options"]["hook_text"]
         if self.job["options"].get("description_text"):
@@ -689,14 +698,14 @@ class Session:
             return
         finally:
             lst.unlink(missing_ok=True)
-        # Only the gameplay layout uses a webcam, and only once the clip's own file is written: the
-        # webcam is looked for in it, once per stream.
-        if clip.get("layout") == "gameplay":
-            if not self.facecam_checked:
-                self.facecam_box = self._find_facecam(src)
-                self.facecam_checked = True
-            if self.facecam_box:
-                clip["facecam"] = self.facecam_box
+        # Look for facecam in gameplay, splitscreen and custom layouts
+        if clip.get("layout") in ("gameplay", "splitscreen", "custom"):
+            if not clip.get("facecam"):
+                if not self.facecam_checked:
+                    self.facecam_box = self._find_facecam(src)
+                    self.facecam_checked = True
+                if self.facecam_box:
+                    clip["facecam"] = self.facecam_box
         dur = segs[-1][2] - segs[0][1]
         offset = self._align(src, segs[0][1] + self.clock_fix, dur)
         self.clock_fix = offset - segs[0][1]  # the two clocks drift ~4 s an hour; start the next clip from here

@@ -110,7 +110,7 @@ on_clip_ready: list = []   # callbacks (job, clip), run once when a clip first f
 
 DEFAULTS = {"max_clips": 6, "min_len": 15, "max_len": 60, "style": "bounce", "hook_style": "white", "layout": "blur", "quality": 720,
             "range_start": None, "range_end": None, "captions": True, "hook_text": "", "description_text": "",
-            "lang": "en"}   # lang: the language spoken
+            "lang": "en", "handle": "", "handle_pos": "top_right", "facecam": None, "custom_layout": {}}   # lang: the language spoken
 
 
 LIMITS = {"max_clips": (1, 20), "min_len": (5, 120), "max_len": (10, 180), "quality": (360, 1080)}
@@ -141,11 +141,37 @@ def clean_options(options) -> dict:
             v = v if v in render.LAYOUTS else DEFAULTS["layout"]
         elif k == "lang":
             v = v if fetch_model.known(v) else DEFAULTS["lang"]
+        elif k == "handle":
+            v = str(v).strip()[:60]
+        elif k == "handle_pos":
+            v = str(v).strip()[:30]
+        elif k == "custom_layout":
+            v = v if isinstance(v, dict) else {}
+        elif k == "facecam":
+            if isinstance(v, (list, tuple)) and len(v) == 4:
+                try:
+                    v = [int(float(x)) for x in v]
+                except (ValueError, TypeError):
+                    v = None
+            elif isinstance(v, str):
+                v = v
+            else:
+                v = None
         else:                                    # range_start, range_end: seconds into the video
             v = float(v)
             if not math.isfinite(v) or v < 0:
                 raise ValueError("That part of the video isn't valid.")
         out[k] = v
+    if any(k in options for k in ("facecam_x", "facecam_y", "facecam_w", "facecam_h")):
+        try:
+            fw = int(float(options.get("facecam_w", 0)))
+            fh = int(float(options.get("facecam_h", 0)))
+            if fw > 8 and fh > 8:
+                fx = int(float(options.get("facecam_x", 0)))
+                fy = int(float(options.get("facecam_y", 0)))
+                out["facecam"] = [fx, fy, fw, fh]
+        except (ValueError, TypeError):
+            pass
     if out.get("range_end") is not None and out["range_end"] <= out.get("range_start", 0):
         raise ValueError("The end of the chosen part must be after its start.")
     return out
@@ -317,7 +343,7 @@ def create(source: dict, options: dict, enqueue=True, creator=None, kind="video"
     c = creators.get(creator) if creator else None
     if c:
         d = creators.root(c["id"]) / ("live" if kind == "live" else "videos") / jid
-        base = {**DEFAULTS, **{k: c[k] for k in ("max_clips", "min_len", "max_len", "style", "layout", "captions", "lang") if k in c},
+        base = {**DEFAULTS, **{k: c[k] for k in ("max_clips", "min_len", "max_len", "style", "layout", "captions", "lang", "handle", "handle_pos", "facecam", "custom_layout") if k in c},
                 "hook_text": creators.clean_hook(c.get("hook_text")),
                 "description_text": creators.clean_description(c.get("description_text"))}
     else:
@@ -389,15 +415,40 @@ def request_render(jid, cid, changes: dict):
         raise ValueError("Those times aren't valid.")
     if not 3 <= new["end"] - new["start"] <= 180:
         raise ValueError("A clip can be 3 to 180 seconds long.")
-    for k in ("hook", "hook_style", "title", "description", "style", "layout", "sfx", "meme", "music"):
+    for k in ("hook", "hook_style", "title", "description", "style", "layout", "sfx", "meme", "music", "handle", "handle_pos"):
         if k in changes:
-            new[k] = str(changes[k])[:{"hook": 60, "title": 100, "description": 2000}.get(k, 30)]
+            new[k] = str(changes[k])[:{"hook": 60, "title": 100, "description": 2000, "handle": 60, "handle_pos": 30, "hook_style": 30}.get(k, 30)]
     if "flash" in changes:
         new["flash"] = bool(changes["flash"])
     if "hashtags" in changes:
         new["hashtags"] = clean_hashtags(changes["hashtags"])
-    if "facecam" in changes:
-        new["facecam"] = changes["facecam"]
+    if "custom_layout_json" in changes and not changes.get("custom_layout"):
+        try:
+            import json
+            changes["custom_layout"] = json.loads(changes["custom_layout_json"])
+        except Exception:
+            pass
+    if "custom_layout" in changes:
+        new["custom_layout"] = changes["custom_layout"] if isinstance(changes["custom_layout"], dict) else {}
+    if any(k in changes for k in ("facecam_x", "facecam_y", "facecam_w", "facecam_h")):
+        try:
+            curr = new.get("facecam") if isinstance(new.get("facecam"), (list, tuple)) and len(new.get("facecam")) == 4 else [0, 0, 0, 0]
+            fx = int(float(changes.get("facecam_x", curr[0])))
+            fy = int(float(changes.get("facecam_y", curr[1])))
+            fw = int(float(changes.get("facecam_w", curr[2])))
+            fh = int(float(changes.get("facecam_h", curr[3])))
+            if fw > 8 and fh > 8:
+                new["facecam"] = [fx, fy, fw, fh]
+        except (ValueError, TypeError):
+            pass
+    elif "facecam" in changes:
+        if isinstance(changes["facecam"], (list, tuple)) and len(changes["facecam"]) == 4:
+            try:
+                new["facecam"] = [int(float(x)) for x in changes["facecam"]]
+            except (ValueError, TypeError):
+                pass
+        else:
+            new["facecam"] = changes["facecam"]
     elif not new.get("facecam") and job.get("facecam"):
         new["facecam"] = job["facecam"]
     if new.get("style") not in render.STYLES:
@@ -486,7 +537,8 @@ def save_post_text(job, clip, changes: dict):
                 layout = "crop"
             hook_y = render._hook_y(layout, hook_y, face)
             ass = render.build_ass(near, local["start"], local["end"], local.get("hook", ""), local.get("style", "bounce"),
-                                   local.get("highlight_words", []), hook_y, cap_y, hook_style=local.get("hook_style", "white"))
+                                   local.get("highlight_words", []), hook_y, cap_y, hook_style=local.get("hook_style", "white"),
+                                   handle=local.get("handle"), handle_pos=local.get("handle_pos"))
             side_ass.write_text(ass, encoding="utf-8")
 
             hook_val = local.get("hook", "")
@@ -1029,17 +1081,25 @@ def _run_job(job):
             c.update(id=f"clip{len(job['clips']) + 1:02d}", start=round(c["start"] + shift, 2),
                      end=round(c["end"] + shift, 2), style=o["style"], hook_style=o.get("hook_style", "white"), layout=o["layout"],
                      captions=o.get("captions", True), status="queued", version=0)
+            if o.get("handle"):
+                c["handle"] = o["handle"]
+            if o.get("handle_pos"):
+                c["handle_pos"] = o["handle_pos"]
+            if o.get("custom_layout"):
+                c["custom_layout"] = o["custom_layout"]
+            if o.get("facecam"):
+                c["facecam"] = o["facecam"]
             if o.get("hook_text"):        # the person's own big text, on every clip, in place of the AI's
                 c["hook"] = o["hook_text"]
             if o.get("description_text"):  # ...and their own description, exactly as written
                 c["description"], c["fixed_description"] = o["description_text"], True
             else:                          # no description of their own: 3 to 5 fitting hashtags go at the end of the AI's
                 hashtags.apply(c, words, job["title"], job["uploader"], game)
-            # Only gameplay and splitscreen layouts use a webcam, so it is only looked for then, and only once: a
+            # Only gameplay, splitscreen and custom layouts use a webcam, so it is only looked for then, and only once: a
             # stream with no webcam is not looked for again on every clip of it.
-            if o.get("layout") in ("gameplay", "splitscreen") and face is False:
+            if o.get("layout") in ("gameplay", "splitscreen", "custom") and not c.get("facecam") and face is False:
                 face = _facecam(job)
-            if face:
+            if face and not c.get("facecam"):
                 c["facecam"] = face
             job["clips"].append(c)
             futures.append((renders.submit(ctx.bind(make), c, list(words)), c))

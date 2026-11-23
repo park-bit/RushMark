@@ -17,7 +17,24 @@ import httpx
 
 from . import config
 
-REPO = (config.env("PEAKCUT_UPDATE_REPO") or "haziqahmedqasmi/peakcut").strip().strip("/")
+
+def _default_repo() -> str:
+    env_repo = config.env("PEAKCUT_UPDATE_REPO")
+    if env_repo:
+        return env_repo.strip().strip("/")
+    try:
+        cfg = (config.ROOT / ".git" / "config").read_text(encoding="utf-8")
+        origin_block = re.search(r'\[remote "origin"\](.*?)(?:\[|\Z)', cfg, re.DOTALL)
+        if origin_block:
+            url_match = re.search(r"github\.com[/:]([\w.\-]+/[\w.\-]+?)(?:\.git)?(?:\s|$)", origin_block.group(1))
+            if url_match:
+                return url_match.group(1)
+    except Exception:
+        pass
+    return "priyanshuthakare/RushMark"
+
+
+REPO = _default_repo()
 BRANCH = (config.env("PEAKCUT_UPDATE_BRANCH") or "main").strip()
 ON = config.env("PEAKCUT_UPDATE_CHECK", "1") != "0" and bool(re.fullmatch(r"[\w.\-]+/[\w.\-]+", REPO))
 EVERY = 60

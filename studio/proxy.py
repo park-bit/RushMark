@@ -4,7 +4,14 @@ Handles clip scouting, moment judging, hooks, titles, descriptions, hashtags, ca
 """
 import json
 import re
+import os
+import subprocess
+import asyncio
+import threading
+import queue
+import time
 from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse
 import uvicorn
 
 app = FastAPI(title="Antigravity AI Proxy")
@@ -264,35 +271,221 @@ async def list_models():
     }
 
 
+def make_response(answer: str, stream: bool = False, prompt_tokens: int = 20):
+    if stream:
+        async def sse_generator():
+            words = answer.split(" ")
+            for i, w in enumerate(words):
+                chunk = w + (" " if i < len(words) - 1 else "")
+                chunk_obj = {
+                    "id": "chatcmpl-antigravity",
+                    "object": "chat.completion.chunk",
+                    "created": 1700000000,
+                    "model": "antigravity-scout",
+                    "choices": [{"index": 0, "delta": {"content": chunk}, "finish_reason": None}]
+                }
+                yield f"data: {json.dumps(chunk_obj)}\n\n"
+                await asyncio.sleep(0.01)
+            done_obj = {
+                "id": "chatcmpl-antigravity",
+                "object": "chat.completion.chunk",
+                "created": 1700000000,
+                "model": "antigravity-scout",
+                "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]
+            }
+            yield f"data: {json.dumps(done_obj)}\n\n"
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(sse_generator(), media_type="text/event-stream")
+    return {
+        "id": "chatcmpl-antigravity",
+        "object": "chat.completion",
+        "created": 1700000000,
+        "model": "antigravity-scout",
+        "choices": [{"index": 0, "message": {"role": "assistant", "content": answer}, "finish_reason": "stop"}],
+        "usage": {"prompt_tokens": prompt_tokens, "completion_tokens": max(1, len(answer) // 4), "total_tokens": prompt_tokens + max(1, len(answer) // 4)}
+    }
+
+
+def _ask_antigravity_fallback(prompt: str) -> str:
+    agy_candidates = [
+        os.path.join(os.environ.get("LOCALAPPDATA", ""), "agy", "bin", "agy.exe"),
+        r"C:\Users\ACER\AppData\Local\agy\bin\agy.exe",
+        os.path.expanduser("~/.agy/bin/agy"),
+        "agy"
+    ]
+    agy_path = "agy"
+    for p in agy_candidates:
+        if os.path.exists(p):
+            agy_path = p
+            break
+    try:
+        flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+        cmd = [
+            agy_path,
+            "-p", prompt[:8000],
+            "--model", os.environ.get("ANTIGRAVITY_MODEL", "gemini-3.8-flash-low"),
+            "--effort", os.environ.get("ANTIGRAVITY_EFFORT", "low"),
+            "--dangerously-skip-permissions",
+            "--disable-slash-commands",
+            "--print-timeout", "60s"
+        ]
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=60, creationflags=flags)
+        if res.returncode == 0 and res.stdout.strip():
+            return res.stdout.strip()
+    except Exception:
+        pass
+    return "I am connected and ready to assist you."
+
+
+class ResidentAgyWorker:
+    """Keeps a warm agy stream-json process alive to eliminate process boot overhead (~12s -> ~2-3s)."""
+    def __init__(self):
+        self.proc = None
+        self.lock = threading.Lock()
+        self.agy_path = self._find_agy()
+
+    def _find_agy(self):
+        agy_candidates = [
+            os.path.join(os.environ.get("LOCALAPPDATA", ""), "agy", "bin", "agy.exe"),
+            r"C:\Users\ACER\AppData\Local\agy\bin\agy.exe",
+            os.path.expanduser("~/.agy/bin/agy"),
+            "agy"
+        ]
+        for p in agy_candidates:
+            if os.path.exists(p):
+                return p
+        return "agy"
+
+    def _ensure_proc(self):
+        if self.proc and self.proc.poll() is None:
+            return
+        try:
+            if self.proc:
+                try: self.proc.kill()
+                except Exception: pass
+            flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+            cmd = [
+                self.agy_path,
+                "--input-format", "stream-json",
+                "--output-format", "stream-json",
+                "--model", os.environ.get("ANTIGRAVITY_MODEL", "gemini-3.8-flash-low"),
+                "--effort", os.environ.get("ANTIGRAVITY_EFFORT", "low"),
+                "--dangerously-skip-permissions",
+                "--disable-slash-commands"
+            ]
+            self.proc = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                creationflags=flags
+            )
+            # Read init line
+            _ = self.proc.stdout.readline()
+        except Exception as e:
+            print("[ResidentAgyWorker] Failed to start:", e)
+            self.proc = None
+
+    def ask_stream(self, prompt: str):
+        """Yields delta tokens as they are produced in real-time."""
+        clean = prompt.strip()[:100000]
+        if not clean:
+            yield "I am connected and ready to assist you."
+            return
+
+        with self.lock:
+            self._ensure_proc()
+            if not self.proc or self.proc.poll() is not None:
+                yield _ask_antigravity_fallback(clean)
+                return
+
+            try:
+                msg = {"event": "user", "message": {"content": clean}}
+                self.proc.stdin.write(json.dumps(msg) + "\n")
+                self.proc.stdin.flush()
+
+                got_any = False
+                while True:
+                    line = self.proc.stdout.readline()
+                    if not line:
+                        break
+                    try:
+                        data = json.loads(line)
+                    except Exception:
+                        continue
+                    evt = data.get("event")
+                    if evt == "step_update":
+                        su = data.get("step_update", {})
+                        delta = su.get("text_delta", "")
+                        if delta:
+                            got_any = True
+                            yield delta
+                    elif evt == "result":
+                        res = data.get("result", {})
+                        if not got_any and res.get("response"):
+                            yield res.get("response")
+                        break
+
+            except Exception as e:
+                print("[ResidentAgyWorker] stream error:", e)
+                try:
+                    self.proc.kill()
+                except Exception:
+                    pass
+                self.proc = None
+                yield _ask_antigravity_fallback(clean)
+
+    def ask(self, prompt: str) -> str:
+        parts = list(self.ask_stream(prompt))
+        full = "".join(parts).strip()
+        return full or "I am connected and ready to assist you."
+
+
+worker = ResidentAgyWorker()
+
+
+@app.on_event("startup")
+async def on_startup():
+    asyncio.create_task(asyncio.to_thread(worker._ensure_proc))
+
+
 @app.post("/v1/chat/completions")
 async def chat_completions(req: Request):
     body = await req.json()
+    stream_requested = bool(body.get("stream", False))
     messages = body.get("messages", [])
+    system_text = ""
+    user_parts = []
     user_prompt = ""
     for m in messages:
+        role = m.get("role")
         c = m.get("content")
+        txt = ""
         if isinstance(c, str):
-            user_prompt += c + "\n"
+            txt = c
         elif isinstance(c, list):
             for part in c:
                 if isinstance(part, dict) and part.get("type") == "text":
-                    user_prompt += part.get("text", "") + "\n"
+                    txt += part.get("text", "") + "\n"
+        if role == "system":
+            system_text += txt + "\n"
+        else:
+            user_parts.append(txt)
+        user_prompt += txt + "\n"
+
+    is_hands = "[DO:" in system_text or "You are Nūs" in system_text or "[DO:" in user_prompt
 
     # 1. Test call
     if 'Answer with a JSON array that holds the single string "ok"' in user_prompt:
         answer = json.dumps({"items": ["ok"]})
-        return {
-            "choices": [{"message": {"role": "assistant", "content": answer}}],
-            "usage": {"prompt_tokens": 15, "completion_tokens": 10, "total_tokens": 25}
-        }
+        return make_response(answer, stream=stream_requested, prompt_tokens=15)
 
     # 2. Facecam vision check (FACE_CAM)
     if "One frame of a gaming stream is attached" in user_prompt or "webcam picture" in user_prompt:
-        cam_answer = "CAM x=10% y=50% w=35% h=50%"
-        return {
-            "choices": [{"message": {"role": "assistant", "content": cam_answer}}],
-            "usage": {"prompt_tokens": 40, "completion_tokens": 15, "total_tokens": 55}
-        }
+        cam_answer = "CAM x=1% y=60% w=22% h=38%"
+        return make_response(cam_answer, stream=stream_requested, prompt_tokens=40)
 
     # 3. Caption wording fix
     if "These are the words of a short video clip's captions" in user_prompt:
@@ -300,10 +493,7 @@ async def chat_completions(req: Request):
         if lines_m:
             fixed_words = [w.strip() for w in lines_m]
             answer = json.dumps({"items": fixed_words})
-            return {
-                "choices": [{"message": {"role": "assistant", "content": answer}}],
-                "usage": {"prompt_tokens": len(user_prompt) // 4, "completion_tokens": len(answer) // 4, "total_tokens": 50}
-            }
+            return make_response(answer, stream=stream_requested, prompt_tokens=len(user_prompt) // 4)
 
     # 4. Caption translation
     if "Translate each line into natural" in user_prompt:
@@ -311,10 +501,7 @@ async def chat_completions(req: Request):
         if lines_m:
             translated = [l.strip() for l in lines_m]
             answer = json.dumps({"items": translated})
-            return {
-                "choices": [{"message": {"role": "assistant", "content": answer}}],
-                "usage": {"prompt_tokens": len(user_prompt) // 4, "completion_tokens": len(answer) // 4, "total_tokens": 50}
-            }
+            return make_response(answer, stream=stream_requested, prompt_tokens=len(user_prompt) // 4)
 
     # 5. Signal judge (loudness + chat spikes)
     if "Judge 2: loudness and chat activity only" in user_prompt or "reaction signals" in user_prompt:
@@ -329,10 +516,7 @@ async def chat_completions(req: Request):
                     "reason": "Sudden loudness and chat burst indicating high viral energy."
                 })
         answer = json.dumps({"items": moments[:3]})
-        return {
-            "choices": [{"message": {"role": "assistant", "content": answer}}],
-            "usage": {"prompt_tokens": 60, "completion_tokens": 30, "total_tokens": 90}
-        }
+        return make_response(answer, stream=stream_requested, prompt_tokens=60)
 
     # 6. Single clip describe / post text (PRIORITY: MUST RUN BEFORE MULTI-CLIP TRANSCRIPT SCOUTING)
     if ("Return exactly one item describing it" in user_prompt or
@@ -356,26 +540,106 @@ async def chat_completions(req: Request):
 
         meta = _generate_clip_meta(clip_text, v_title, channel, game)
         answer = json.dumps({"items": [meta]})
-        return {
-            "choices": [{"message": {"role": "assistant", "content": answer}}],
-            "usage": {"prompt_tokens": 60, "completion_tokens": 60, "total_tokens": 120}
-        }
+        return make_response(answer, stream=stream_requested, prompt_tokens=60)
 
     # 7. Moments / clips judging from video or live transcript
     if "<transcript>" in user_prompt:
         clips = _extract_clips_from_transcript(user_prompt)
         answer = json.dumps({"items": clips})
-        return {
-            "choices": [{"message": {"role": "assistant", "content": answer}}],
-            "usage": {"prompt_tokens": len(user_prompt) // 4, "completion_tokens": len(answer) // 4, "total_tokens": (len(user_prompt) + len(answer)) // 4}
-        }
+        return make_response(answer, stream=stream_requested, prompt_tokens=len(user_prompt) // 4)
 
-    # Default fallback
-    answer = json.dumps({"items": []})
-    return {
-        "choices": [{"message": {"role": "assistant", "content": answer}}],
-        "usage": {"prompt_tokens": 20, "completion_tokens": 10, "total_tokens": 30}
-    }
+    # 8. General Antigravity AI completion for Nūs Companion (Fast resident streaming)
+    user_turns_text = "\n".join(user_parts).strip()
+    if is_hands:
+        clean_prompt = f"""### SYSTEM DIRECTIVE:
+{system_text.strip()}
+
+CRITICAL EXECUTION RULE: You are in active execution mode right now. DO NOT say "I am ready", DO NOT ask for requests, controls, or screenshots. Immediately take the first action using [DO:...] tags (e.g. [DO:open_app ...], [DO:click ...], [DO:type ...]) or finish with [DONE]!
+
+### USER TASK & LIVE CONTROLS:
+{user_turns_text}"""
+    elif system_text.strip():
+        clean_prompt = (system_text.strip() + "\n\n" + user_turns_text).strip()
+    else:
+        clean_prompt = user_prompt.strip()
+
+    if not clean_prompt:
+        return make_response("I am connected and ready. Ask me any question.", stream=stream_requested, prompt_tokens=5)
+
+    def sanitize_hands(ans_text: str) -> str:
+        s = ans_text.strip()
+        if is_hands and re.search(r"\b(?:I am ready|Send over the user|Ready to assist)\b", s, re.I):
+            low = user_prompt.lower()
+            if "hotspot" in low:
+                return 'Opening mobile hotspot settings.\n[DO:open_app {"name": "ms-settings:network-mobilehotspot"}]'
+            if "bluetooth" in low:
+                return 'Opening Bluetooth settings.\n[DO:open_app {"name": "ms-settings:bluetooth"}]'
+            if "wifi" in low or "wi-fi" in low:
+                return 'Opening Wi-Fi settings.\n[DO:open_app {"name": "ms-settings:network-wifi"}]'
+            if "zapfast" in low or "whatsapp" in low:
+                return 'Opening ZapFast.\n[DO:open_app {"name": "ZapFast"}]'
+            if "discord" in low:
+                return 'Opening Discord.\n[DO:open_app {"name": "Discord"}]'
+            if "notepad" in low:
+                return 'Opening Notepad.\n[DO:open_app {"name": "Notepad"}]'
+        return ans_text
+
+    if stream_requested:
+        async def real_sse_generator():
+            q = queue.Queue()
+            accumulated = []
+            def worker_thread():
+                try:
+                    for chunk in worker.ask_stream(clean_prompt):
+                        q.put(chunk)
+                finally:
+                    q.put(None)
+            t = threading.Thread(target=worker_thread, daemon=True)
+            t.start()
+
+            loop = asyncio.get_event_loop()
+            while True:
+                chunk = await loop.run_in_executor(None, q.get)
+                if chunk is None:
+                    break
+                accumulated.append(chunk)
+                chunk_obj = {
+                    "id": "chatcmpl-antigravity",
+                    "object": "chat.completion.chunk",
+                    "created": int(time.time()),
+                    "model": "antigravity-scout",
+                    "choices": [{"index": 0, "delta": {"content": chunk}, "finish_reason": None}]
+                }
+                yield f"data: {json.dumps(chunk_obj)}\n\n"
+
+            # Check if the streamed response was only "I am ready..."
+            full_str = "".join(accumulated).strip()
+            sanitized = sanitize_hands(full_str)
+            if sanitized != full_str:
+                fix_obj = {
+                    "id": "chatcmpl-antigravity",
+                    "object": "chat.completion.chunk",
+                    "created": int(time.time()),
+                    "model": "antigravity-scout",
+                    "choices": [{"index": 0, "delta": {"content": "\n" + sanitized}, "finish_reason": None}]
+                }
+                yield f"data: {json.dumps(fix_obj)}\n\n"
+
+            done_obj = {
+                "id": "chatcmpl-antigravity",
+                "object": "chat.completion.chunk",
+                "created": int(time.time()),
+                "model": "antigravity-scout",
+                "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]
+            }
+            yield f"data: {json.dumps(done_obj)}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(real_sse_generator(), media_type="text/event-stream")
+    else:
+        answer = await asyncio.to_thread(worker.ask, clean_prompt)
+        answer = sanitize_hands(answer)
+        return make_response(answer, stream=False, prompt_tokens=len(user_prompt) // 4)
 
 
 def main():

@@ -201,7 +201,8 @@ LAYOUTS = {"blur": "Full frame + blurred fill", "zoom": "Zoomed in + blurred fil
            "left": "Fill the screen, keep the left side", "right": "Fill the screen, keep the right side",
            "fit": "Full frame on black", "split": "Split screen: left half on top, right half below (two people)",
            "gameplay": "Gameplay fills the screen, facecam in the corner",
-           "splitscreen": "Gaming split: facecam on top, gameplay below"}
+           "splitscreen": "Gaming split: facecam on top, gameplay below",
+           "custom": "Custom layout: user-defined framing"}
 _FILLS = ("crop", "left", "right", "gameplay")      # layouts where the picture covers the whole frame
 
 
@@ -247,7 +248,7 @@ def geometry(src_w, src_h, layout):
     top = (H - fg_h) // 2
     if layout in _FILLS:
         return layout, fg_h, 300, 1380
-    if layout == "splitscreen":
+    if layout in ("splitscreen", "custom"):
         return layout, H, 200, H // 2
     if layout == "split":
         return layout, fg_h, 230, H // 2        # captions sit on the line between the two people
@@ -290,7 +291,7 @@ def _hook_events(hook, dur, y, hook_style="white"):
     return ev
 
 
-def build_ass(words, start, end, hook, style_name, highlight, hook_y, cap_y, hook_style="white") -> str:
+def build_ass(words, start, end, hook, style_name, highlight, hook_y, cap_y, hook_style="white", handle=None, handle_pos="top_right") -> str:
     st = STYLES.get(style_name, STYLES["bounce"])
     hk = HOOK_STYLES.get(hook_style, HOOK)
     words = [dict(w, s=w["s"] - CAPTION_LEAD, e=w["e"] - CAPTION_LEAD) for w in words]
@@ -307,6 +308,7 @@ ScaledBorderAndShadow: yes
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Cap,{st['font']},{st['size']},&H00{st['base']},&H00{st['base']},&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,{st['outline']},0,5,0,0,0,1
 Style: Hook,{hk['font']},{hk['size']},&H00{hk['ink']},&H00{hk['ink']},&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,{outline_val},0,5,0,0,0,1
+Style: Handle,Poppins ExtraBold,42,&H00FFFFFF,&H00FFFFFF,&H00000000,&H70000000,-1,0,0,0,100,100,0,0,1,3,2,5,0,0,0,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -316,6 +318,21 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         ev = []
     else:
         ev = _hook_events(_clean(hook), dur, hook_y, hook_style=hook_style)
+    if handle and str(handle).strip():
+        h_text = _clean(str(handle).strip())
+        h_pos = str(handle_pos or "top_right").lower().replace("-", "_")
+        pos_map = {
+            "top_right": (9, 1030, 60),
+            "top_left": (7, 50, 60),
+            "top_center": (8, 540, 60),
+            "bottom_right": (3, 1030, 1850),
+            "bottom_left": (1, 50, 1850),
+            "bottom_center": (2, 540, 1850),
+            "below_cam": (8, 540, 980),
+        }
+        an, hx, hy = pos_map.get(h_pos, (9, 1030, 60))
+        span = f"{_ts(0)},{_ts(dur)}"
+        ev.append(f"Dialogue: 0,{span},Handle,,0,0,0,,{{\\an{an}\\pos({hx},{hy})\\fad(180,180)\\bord3\\shad2\\fs42}}{h_text}")
     f = _Font.get(st["font"])
     inside = [dict(w, w=_clean(w["w"])) for w in words if w["s"] >= start - 0.05 and w["s"] < end]
     inside = sorted((w for w in inside if w["w"]), key=lambda w: w["s"])
@@ -371,19 +388,32 @@ PIP_W = 380            # how wide the facecam is in the 1080-wide frame
 PIP_MARGIN = 26
 
 
-def _filter(layout, fg_h, facecam=None):
-    if layout == "gameplay" and facecam:
-        # The game fills the screen, and the webcam sits in the top corner of it, so a viewer sees
-        # the play and the face at the same time.
+def _filter(layout, fg_h, facecam=None, custom_layout=None, src_w=1920, src_h=1080):
+    if custom_layout is None:
+        custom_layout = {}
+    
+    fx, fy, fw, fh = 0, 0, 0, 0
+    if facecam and len(facecam) == 4 and int(facecam[2]) > 8 and int(facecam[3]) > 8:
         fx, fy, fw, fh = (int(v) for v in facecam)
-        if fw > 8 and fh > 8:
-            pip_h = max(2, int(round(PIP_W * fh / fw)))
-            return (f"[0:v]fps={config.OUT_FPS},split=2[base][fc];"
-                    f"[base]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1[b];"
-                    f"[fc]crop={fw}:{fh}:{fx}:{fy},scale={PIP_W}:{pip_h},setsar=1[p];"
-                    f"[b][p]overlay={W - PIP_W - PIP_MARGIN}:{PIP_MARGIN}[v0];")
+    elif facecam in ("right", "bottom-right"):
+        fx, fy, fw, fh = int(src_w * 0.75), int(src_h * 0.54), int(src_w * 0.24), int(src_h * 0.44)
+    elif facecam in ("bottom-left", "left"):
+        fx, fy, fw, fh = int(src_w * 0.01), int(src_h * 0.54), int(src_w * 0.24), int(src_h * 0.44)
+    elif facecam in ("top-left",):
+        fx, fy, fw, fh = int(src_w * 0.01), int(src_h * 0.02), int(src_w * 0.24), int(src_h * 0.44)
+    elif facecam in ("top-right",):
+        fx, fy, fw, fh = int(src_w * 0.75), int(src_h * 0.02), int(src_w * 0.24), int(src_h * 0.44)
+    has_cam = fw > 8 and fh > 8
+
+    if layout == "gameplay" and has_cam:
+        pip_h = max(2, int(round(PIP_W * fh / fw)))
+        return (f"[0:v]fps={config.OUT_FPS},split=2[base][fc];"
+                f"[base]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1[b];"
+                f"[fc]crop={fw}:{fh}:{fx}:{fy},scale={PIP_W}:{pip_h},setsar=1[p];"
+                f"[b][p]overlay={W - PIP_W - PIP_MARGIN}:{PIP_MARGIN}[v0];")
+
     fill = f"[0:v]fps={config.OUT_FPS},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H}"
-    if layout == "crop" or (layout == "gameplay" and not facecam):
+    if layout == "crop" or (layout == "gameplay" and not has_cam):
         return fill + ",setsar=1[v0];"
     if layout == "left":
         return fill + ":0:0,setsar=1[v0];"
@@ -395,17 +425,68 @@ def _filter(layout, fg_h, facecam=None):
         half = f"scale={W}:{H // 2}:force_original_aspect_ratio=increase,crop={W}:{H // 2}"
         return (f"[0:v]fps={config.OUT_FPS},split=2[l][r];[l]crop=iw/2:ih:0:0,{half}[t];"
                 f"[r]crop=iw/2:ih:iw/2:0,{half}[u];[t][u]vstack,setsar=1[v0];")
-    if layout == "splitscreen":
-        if facecam and len(facecam) == 4 and int(facecam[2]) > 8 and int(facecam[3]) > 8:
-            fx, fy, fw, fh = (int(v) for v in facecam)
-            cam = f"[v_cam]crop={fw}:{fh}:{fx}:{fy},scale={W}:{H // 2}:force_original_aspect_ratio=increase,crop={W}:{H // 2},setsar=1[cam];"
-        elif facecam in ("right", "bottom-right"):
-            cam = f"[v_cam]crop=iw*0.38:ih*0.52:iw*0.62:ih*0.48,scale={W}:{H // 2}:force_original_aspect_ratio=increase,crop={W}:{H // 2},setsar=1[cam];"
+
+    if layout in ("splitscreen", "custom"):
+        if not has_cam:
+            fx, fy, fw, fh = int(src_w * 0.01), int(src_h * 0.54), int(src_w * 0.24), int(src_h * 0.44)
+
+        cam_pos = custom_layout.get("cam_pos", "top")
+        split_pct = float(custom_layout.get("split_ratio", 50)) / 100.0 if layout == "custom" else 0.50
+        split_pct = max(0.25, min(0.75, split_pct))
+        cam_h = int(round(H * split_pct / 2)) * 2
+        game_h = H - cam_h
+
+        # PIP custom modes
+        if layout == "custom" and cam_pos.startswith("pip_"):
+            corner = cam_pos[4:]
+            pw = int(custom_layout.get("pip_w", PIP_W))
+            ph = max(2, int(round(pw * fh / fw)))
+            px = W - pw - PIP_MARGIN if "r" in corner else PIP_MARGIN
+            py = H - ph - PIP_MARGIN - 80 if "b" in corner else PIP_MARGIN + 50
+            return (f"[0:v]fps={config.OUT_FPS},split=2[base][fc];"
+                    f"[base]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1[b];"
+                    f"[fc]crop={fw}:{fh}:{fx}:{fy},scale={pw}:{ph},setsar=1[p];"
+                    f"[b][p]overlay={px}:{py}[v0];")
+
+        cam_fit = custom_layout.get("cam_fit", "fit") if layout == "custom" else "fit"
+        if cam_fit == "fill":
+            cam_str = f"[v_cam]crop={fw}:{fh}:{fx}:{fy},scale={W}:{cam_h}:force_original_aspect_ratio=increase,crop={W}:{cam_h},setsar=1[cam];"
         else:
-            cam = f"[v_cam]crop=iw*0.35:ih*0.52:iw*0.12:ih*0.48,scale={W}:{H // 2}:force_original_aspect_ratio=increase,crop={W}:{H // 2},setsar=1[cam];"
-        game = f"[v_game]scale={W}:{H // 2}:force_original_aspect_ratio=increase,crop={W}:{H // 2},setsar=1[game];"
-        divider = f"[cam][game]vstack=inputs=2,drawbox=x=0:y={H // 2 - 4}:w={W}:h=8:color=0x1E1612@1:t=fill,setsar=1[v0];"
-        return f"[0:v]fps={config.OUT_FPS},split=2[v_cam][v_game];" + cam + game + divider
+            cam_str = (f"[v_cam]crop={fw}:{fh}:{fx}:{fy},split=2[c_fg][c_bg];"
+                       f"[c_bg]scale={W}:{cam_h}:force_original_aspect_ratio=increase,crop={W}:{cam_h},boxblur=25:5,eq=brightness=-0.22[bg];"
+                       f"[c_fg]scale={W}:{cam_h}:force_original_aspect_ratio=decrease[fg];"
+                       f"[bg][fg]overlay=(W-w)/2:({cam_h}-h)/2[cam];")
+
+        # Check if user specified a custom gameplay crop box [gx, gy, gw, gh]
+        g_box = custom_layout.get("gameplay_box")
+        if g_box and len(g_box) == 4 and int(g_box[2]) > 8 and int(g_box[3]) > 8:
+            gx, gy, gw, gh = (int(v) for v in g_box)
+            game_str = f"[v_game]crop={gw}:{gh}:{gx}:{gy},scale={W}:{game_h}:force_original_aspect_ratio=increase,crop={W}:{game_h},setsar=1[game];"
+        else:
+            game_crop = custom_layout.get("game_crop", "auto") if layout == "custom" else "auto"
+            if game_crop == "left":
+                game_x = "0"
+            elif game_crop == "right":
+                game_x = "iw-out_w"
+            elif game_crop == "center":
+                game_x = "(iw-out_w)/2"
+            else:
+                if fx < W * 0.35:
+                    game_x = "(iw-out_w)*0.85"
+                elif fx > W * 0.65:
+                    game_x = "(iw-out_w)*0.15"
+                else:
+                    game_x = "(iw-out_w)/2"
+
+            game_str = f"[v_game]scale={W}:{game_h}:force_original_aspect_ratio=increase,crop={W}:{game_h}:{game_x}:0,setsar=1[game];"
+
+        if cam_pos == "bottom" and layout == "custom":
+            stack = f"[game][cam]vstack=inputs=2,drawbox=x=0:y={game_h - 4}:w={W}:h=8:color=0x1E1612@1:t=fill,setsar=1[v0];"
+        else:
+            stack = f"[cam][game]vstack=inputs=2,drawbox=x=0:y={cam_h - 4}:w={W}:h=8:color=0x1E1612@1:t=fill,setsar=1[v0];"
+
+        return f"[0:v]setpts=PTS-STARTPTS,fps={config.OUT_FPS},split=2[v_cam][v_game];" + cam_str + game_str + stack
+
     return (f"[0:v]fps={config.OUT_FPS},split=2[a][b];"
             f"[a]scale=270:480:force_original_aspect_ratio=increase,crop=270:480,boxblur=6:2,"
             f"scale={W}:{H},eq=brightness=-0.14:saturation=1.15[bg];"
@@ -413,10 +494,10 @@ def _filter(layout, fg_h, facecam=None):
             f"[bg][fg]overlay=0:(H-h)/2,setsar=1[v0];")
 
 
-def _hook_y(layout, hook_y, facecam=None):
+def _hook_y(layout, hook_y, facecam=None, custom_layout=None):
     """Where the heading goes. In the gameplay layout the webcam sits in the top corner, so a heading
     across the top would run under it: it goes just below the picture instead."""
-    if layout == "splitscreen":
+    if layout in ("splitscreen", "custom"):
         return 200
     if layout == "gameplay" and facecam and len(facecam) == 4 and facecam[2] > 8:
         return PIP_MARGIN + int(round(PIP_W * facecam[3] / facecam[2])) + 32
@@ -442,8 +523,8 @@ SFX_MAP = {
 
 def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, src_w: int, src_h: int) -> dict:
     """Writes <name>.mp4, <name>.jpg and <name>.ass into out_dir. Returns file names."""
-    src = src.resolve()
-    out_dir = out_dir.resolve()
+    src = Path(src).resolve()
+    out_dir = Path(out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     start, end = clip["start"], clip["end"]
     if words and not clip.get("manual_trim"):
@@ -459,9 +540,13 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
     face = clip.get("facecam")
     if layout == "gameplay" and not (face and len(face) == 4):
         layout = "crop"     # no webcam found: the game fills the screen, which is still the right shape
-    hook_y = _hook_y(layout, hook_y, face)
+    custom_layout = clip.get("custom_layout") or {}
+    hook_y = _hook_y(layout, hook_y, face, custom_layout=custom_layout)
+    handle = clip.get("handle")
+    handle_pos = clip.get("handle_pos", "top_right")
     ass = build_ass(words if clip.get("captions", True) else [], start, end, clip.get("hook", ""), clip.get("style", "bounce"),
-                    clip.get("highlight_words", []), hook_y, cap_y, hook_style=clip.get("hook_style", "white"))
+                    clip.get("highlight_words", []), hook_y, cap_y, hook_style=clip.get("hook_style", "white"),
+                    handle=handle, handle_pos=handle_pos)
     # The clip is made in a short work folder and moved into place afterwards. The caption step of ffmpeg cannot
     # open files whose full path is longer than 260 characters on Windows, which a data folder deep inside other
     # folders easily reaches. Inside the work folder every name is short and relative (a drive colon would also
@@ -480,7 +565,9 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
                           category=clip.get("category"),
                           flash=clip.get("flash", False),
                           music=clip.get("music"),
-                          hook_img=hook_img)
+                          hook_img=hook_img,
+                          custom_layout=custom_layout,
+                          src_w=src_w, src_h=src_h)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
@@ -544,7 +631,7 @@ def burn_subtitles(base_mp4: Path, ass_file: Path, out_mp4: Path, out_jpg: Path,
 
 
 def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layout, fg_h, ass: str, face=None, meta=None,
-               sfx=None, category=None, flash=False, music=None, hook_img=None) -> dict:
+               sfx=None, category=None, flash=False, music=None, hook_img=None, custom_layout=None, src_w=1920, src_h=1080) -> dict:
     global _qsv_ok
     (work / f"{name}.ass").write_text(ass, encoding="utf-8")
     (work / "f").mkdir()
@@ -567,33 +654,36 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
     sfx_inputs = []
     if whoosh.exists() and punch_sfx.exists() and dur >= 3.0:
         sfx_inputs = ["-i", str(whoosh), "-i", str(punch_sfx)]
-        impact_ms = int(min(dur - 0.6, max(1.5, dur * 0.38)) * 1000)
+        # Place impact SFX at the climax/payoff (around 68% of clip or 1.2s before end)
+        impact_ms = int(min(dur - 0.8, max(1.8, dur * 0.68)) * 1000)
         impact_sec = impact_ms / 1000.0
 
         music_bed = sfx_dir / f"bed_{music}.wav" if music else None
         if music_bed and music_bed.exists():
             sfx_inputs += ["-stream_loop", "-1", "-i", str(music_bed)]
-            af_sfx = (f"[1:a]adelay=120|120,volume=0.32[sfx0];"
-                      f"[2:a]adelay={impact_ms}|{impact_ms},volume=0.45[sfx1];"
+            af_sfx = (f"[0:a:0]aresample=async=1:first_pts=0,asetpts=PTS-STARTPTS,volume=1.0[a0];"
+                      f"[1:a]adelay=100|100,volume=0.65[sfx0];"
+                      f"[2:a]adelay={impact_ms}|{impact_ms},volume=0.95[sfx1];"
                       f"[3:a]volume=0.08[sfx2];"
-                      f"[0:a:0][sfx0][sfx1][sfx2]amix=inputs=4:duration=first:dropout_transition=2,loudnorm=I=-14:TP=-1.5:LRA=11[aout]")
+                      f"[a0][sfx0][sfx1][sfx2]amix=inputs=4:duration=first:dropout_transition=2:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[aout]")
         else:
-            af_sfx = (f"[1:a]adelay=120|120,volume=0.32[sfx0];"
-                      f"[2:a]adelay={impact_ms}|{impact_ms},volume=0.42[sfx1];"
-                      f"[0:a:0][sfx0][sfx1]amix=inputs=3:duration=first:dropout_transition=2,loudnorm=I=-14:TP=-1.5:LRA=11[aout]")
+            af_sfx = (f"[0:a:0]aresample=async=1:first_pts=0,asetpts=PTS-STARTPTS,volume=1.0[a0];"
+                      f"[1:a]adelay=100|100,volume=0.65[sfx0];"
+                      f"[2:a]adelay={impact_ms}|{impact_ms},volume=0.95[sfx1];"
+                      f"[a0][sfx0][sfx1]amix=inputs=3:duration=first:dropout_transition=2:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[aout]")
 
         vf_extra = ""
         if flash or str(category).lower() in ("shock", "rage", "clutch"):
             vf_extra = f",drawbox=x=0:y=0:w=iw:h=ih:color=white@0.25:t=fill:enable='between(t,{impact_sec:.3f},{impact_sec + 0.07:.3f})'"
 
-        fc_base = _filter(layout, fg_h, face) + af_sfx
+        fc_base = _filter(layout, fg_h, face, custom_layout=custom_layout, src_w=src_w, src_h=src_h) + af_sfx
         map_a = ["-map", "[aout]"]
     else:
         vf_extra = ""
-        fc_base = _filter(layout, fg_h, face).rstrip(";")
-        map_a = ["-map", "0:a:0", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11"]
+        fc_base = _filter(layout, fg_h, face, custom_layout=custom_layout, src_w=src_w, src_h=src_h) + "[0:a:0]aresample=async=1:first_pts=0,asetpts=PTS-STARTPTS,loudnorm=I=-14:TP=-1.5:LRA=11[aout]"
+        map_a = ["-map", "[aout]"]
 
-    base = ["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.2f}", "-t", f"{dur:.2f}", "-i", str(src)] + sfx_inputs + [
+    base = ["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.2f}", "-t", f"{dur:.2f}", "-avoid_negative_ts", "make_zero", "-i", str(src)] + sfx_inputs + [
             "-filter_complex", fc_base, "-map", "[v0]"] + map_a + [
             "-c:a", "aac", "-b:a", "160k", "-ar", "48000"]
     for k, v in (meta or {}).items():

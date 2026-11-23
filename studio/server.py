@@ -1105,6 +1105,87 @@ def clip_best_hashtags(jid: str, cid: str):
     return {"hashtags": tags, "description": full_desc}
 
 
+@app.get("/api/jobs/{jid}/clips/{cid}/source-frame")
+def clip_source_frame(jid: str, cid: str, t: float = 1.5):
+    """Returns a full 16:9 still frame from the clip source for visual layout editing."""
+    job, clip = _clip_or_404(jid, cid)
+    d = Path(job["dir"]) / "clips"
+    seek_t = max(0.1, float(t))
+    tag = f"{seek_t:.1f}".replace(".", "_")
+    frame_path = d / f"{cid}.source_{tag}.jpg" if abs(seek_t - 1.5) > 0.05 else d / f"{cid}.source.jpg"
+    if not frame_path.is_file():
+        src = None
+        if clip.get("src") and Path(clip["src"]).is_file():
+            src = Path(clip["src"])
+        elif (d / f"{cid}.src.ts").is_file():
+            src = d / f"{cid}.src.ts"
+        elif job.get("source_path") and Path(job["source_path"]).is_file():
+            src = Path(job["source_path"])
+        elif (Path(job["dir"]) / "source.mp4").is_file():
+            src = Path(job["dir"]) / "source.mp4"
+        else:
+            for cand in Path(job["dir"]).glob("source.*"):
+                if cand.is_file():
+                    src = cand
+                    break
+        if not src or not src.is_file():
+            raise HTTPException(404, "Source video not found")
+        try:
+            media.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{seek_t:.2f}", "-i", str(src),
+                       "-frames:v", "1", "-q:v", "2", str(frame_path)])
+        except Exception as e:
+            raise HTTPException(500, f"Could not capture frame: {e}")
+    return FileResponse(frame_path, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=600"})
+
+
+def _detect_facecam_box_in_frame(frame_path: Path):
+    try:
+        from PIL import Image
+        import numpy as np
+        im = Image.open(frame_path)
+        w, h = im.size
+        arr = np.array(im.convert("RGB"))
+        cw, ch = int(w * 0.28), int(h * 0.45)
+        corners = {
+            "bottom-left": (0, h - ch, cw, h),
+            "bottom-right": (w - cw, h - ch, w, h),
+            "top-left": (0, 0, cw, ch),
+            "top-right": (w - cw, 0, w, ch)
+        }
+        scores = {}
+        for name, (x0, y0, x1, y1) in corners.items():
+            crop = arr[y0:y1, x0:x1]
+            r, g, b = crop[:, :, 0], crop[:, :, 1], crop[:, :, 2]
+            skin = (r > 95) & (g > 40) & (b > 20) & (r > g) & ((r - g) > 12) & (g > b)
+            scores[name] = float(skin.mean())
+        best = max(scores, key=scores.get)
+        if scores[best] < 0.012:
+            return {"ok": False, "box": [int(w * 0.01), int(h * 0.54), int(w * 0.24), int(h * 0.44)], "corner": "bottom-left", "videoW": w, "videoH": h}
+        if best == "bottom-left":
+            box = [int(w * 0.01), int(h * 0.54), int(w * 0.24), int(h * 0.44)]
+        elif best == "bottom-right":
+            box = [int(w * 0.75), int(h * 0.54), int(w * 0.24), int(h * 0.44)]
+        elif best == "top-left":
+            box = [int(w * 0.01), int(h * 0.01), int(w * 0.24), int(h * 0.44)]
+        else:
+            box = [int(w * 0.75), int(h * 0.01), int(w * 0.24), int(h * 0.44)]
+        return {"ok": True, "box": box, "corner": best, "videoW": w, "videoH": h}
+    except Exception as e:
+        return {"ok": False, "error": str(e), "box": [12, 388, 307, 316], "corner": "bottom-left", "videoW": 1280, "videoH": 720}
+
+
+@app.get("/api/jobs/{jid}/clips/{cid}/detect-facecam")
+def clip_detect_facecam(jid: str, cid: str, t: float = 1.5):
+    job, clip = _clip_or_404(jid, cid)
+    d = Path(job["dir"]) / "clips"
+    seek_t = max(0.1, float(t))
+    tag = f"{seek_t:.1f}".replace(".", "_")
+    frame_path = d / f"{cid}.source_{tag}.jpg" if abs(seek_t - 1.5) > 0.05 else d / f"{cid}.source.jpg"
+    if not frame_path.is_file():
+        clip_source_frame(jid, cid, t=seek_t)
+    return _detect_facecam_box_in_frame(frame_path)
+
+
 @app.delete("/api/jobs/{jid}")
 def delete_job(jid: str):
     job = _job_or_404(jid)
@@ -1328,6 +1409,55 @@ def creator_avatar(cid: str, p: str = ""):
     if not f.is_file() or prof.get("pic") not in ("image/jpeg", "image/png", "image/webp"):
         raise HTTPException(404)
     return FileResponse(f, media_type=prof["pic"], headers={"Cache-Control": "private, max-age=86400"})
+
+
+@app.get("/api/creators/{cid}/source-frame")
+def creator_source_frame(cid: str):
+    """Returns a full 16:9 still frame from the creator's recent streams or videos for visual layout editing."""
+    c = creators.get(cid)
+    if not c:
+        raise HTTPException(404, "No such creator")
+    cdir = creators.root(cid)
+    for sub in ("live", "videos"):
+        for job_dir in sorted((cdir / sub).glob("*"), reverse=True):
+            if job_dir.is_dir():
+                for cand_name in ("clip001.source.jpg", "clip01.source.jpg", "creator_frame.jpg"):
+                    cand = job_dir / "clips" / cand_name
+                    if cand.is_file():
+                        return FileResponse(cand, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=600"})
+                srcs = list(job_dir.glob("clips/*.src.ts")) + list(job_dir.glob("source.*"))
+                if srcs:
+                    src = srcs[0]
+                    frame_path = job_dir / "clips" / "creator_frame.jpg"
+                    if not frame_path.is_file():
+                        frame_path.parent.mkdir(exist_ok=True)
+                        try:
+                            media.run(["ffmpeg", "-y", "-v", "error", "-ss", "1.5", "-i", str(src),
+                                       "-frames:v", "1", "-q:v", "2", str(frame_path)])
+                        except Exception:
+                            continue
+                    if frame_path.is_file():
+                        return FileResponse(frame_path, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=600"})
+    mock = config.TMP_DIR / "sample_stream_frame.jpg"
+    if not mock.is_file():
+        mock.parent.mkdir(exist_ok=True)
+        try:
+            media.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi",
+                       "-i", "testsrc=size=1280x720:rate=1", "-frames:v", "1", "-q:v", "2", str(mock)])
+        except Exception:
+            raise HTTPException(404, "No stream frame available")
+    return FileResponse(mock, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=600"})
+
+
+@app.get("/api/creators/{cid}/detect-facecam")
+def creator_detect_facecam(cid: str):
+    c = creators.get(cid)
+    if not c:
+        raise HTTPException(404, "No such creator")
+    resp = creator_source_frame(cid)
+    if hasattr(resp, "path") and Path(resp.path).is_file():
+        return _detect_facecam_box_in_frame(Path(resp.path))
+    return {"ok": False, "box": [12, 388, 307, 316], "corner": "bottom-left", "videoW": 1280, "videoH": 720}
 
 
 @app.get("/api/creators")
